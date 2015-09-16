@@ -1,0 +1,6 @@
+[0m[[0minfo[0m] [0m[32mMatrixTest:[0m[0m
+[0m[[0minfo[0m] [0m[32mA matrix[0m[0m
+[0m[[0minfo[0m] [0m[32m- should have a given size[0m[0m
+[0m[[0minfo[0m] [0m[32m- should have elements accessible via position[0m[0m
+[0m[[0minfo[0m] [0m[32m- should be updatable[0m[0m
+[0m[[0minfo[0m] [0m[32m- should be additonable with another matrix[0m[0m
