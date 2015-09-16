@@ -1,11 +1,12 @@
 package machinelearning
 
-trait SemiGroup[T] extends Serializable {
+/**
+ * A class with an associative plus operation
+ */
+trait SemiGroup[@specialized(Int) T] extends Serializable {
   def plus(l: T, r: T): T
 }
 
 object SemiGroup {
-  implicit object IntSemiGroup extends SemiGroup[Int] {
-    override def plus(l: Int, r: Int): Int = l + r
-  }
+  implicit val intSemiGroup: SemiGroup[Int] = IntRing
 }
