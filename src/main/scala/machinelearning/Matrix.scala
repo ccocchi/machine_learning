@@ -55,6 +55,18 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
 
   def *[That, Res](that: That)(implicit product: MatrixProduct[Matrix[V], That, Res]): Res =
     product(this, that)
+
+  def transpose: Matrix[V] = {
+    val res = IndexedSeq.newBuilder[V]
+
+    var i = 0
+    while(i < rows) {
+      row(i).values.foreach(v => res += v)
+      i += 1
+    }
+
+    Matrix(cols, rows, res.result())
+  }
 }
 
 object Matrix {
