@@ -36,9 +36,13 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
   }
 
   def column(idx: Int): ColVector[V] = {
-    val start = idx * rows
-    val vs = rowsByColumns.slice(start, start + rows)
-    new ColVector[V](vs)
+    val res = IndexedSeq.newBuilder[V]
+    var i = 0
+    while(i < rows) {
+      res += rowsByColumns(tupToIndex(idx, i))
+      i += 1
+    }
+    new ColVector[V](res.result())
   }
 
   def row(idx: Int): RowVector[V] = {
