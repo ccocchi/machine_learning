@@ -30,10 +30,17 @@ object MatrixProduct {
         var i = 0
         while (i < r.cols) {
           var j = 0
-          val column = r.column(i)
 
           while(j < l.rows) {
-            res += l.row(j) * column
+            var k = 0
+            var tmp = ring.zero
+
+            while(k < l.cols) {
+              tmp = ring.plus(tmp, ring.times(l.getValue((k, j)), r.getValue((i, k))))
+              k += 1
+            }
+
+            res += tmp
             j += 1
           }
           i += 1
