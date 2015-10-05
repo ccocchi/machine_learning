@@ -3,7 +3,7 @@ package machinelearning
 /**
  * A ring is a Group with left associativity multiplication
  */
-trait Ring[@specialized(Int) T] extends Group[T] {
+trait Ring[@specialized(Int, Double) T] extends Group[T] {
   def one: T // Multiplicative identity
   def times(l: T, r: T): T
 }
@@ -19,4 +19,5 @@ object IntRing extends Ring[Int] {
 
 object Ring {
   implicit val intRing: Ring[Int] = IntRing
+  implicit val DoubleRing: Ring[Double] = DoubleField
 }

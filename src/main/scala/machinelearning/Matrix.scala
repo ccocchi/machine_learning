@@ -16,6 +16,7 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
   private[this] val valueMonoid = implicitly[Monoid[V]]
 
   // This Seq is column-major, i.e. elements in the same column are next to each other in the array
+  // position = (column, row)
   private[this] def tupToIndex(position: (Int, Int)): Int = position._1 * rows + position._2
 
   override def getValue(position: (Int, Int)): V = rowsByColumns(tupToIndex(position))
@@ -55,6 +56,37 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
     new RowVector[V](res.result())
   }
 
+  def swapRows(from: Int, to: Int): Matrix[V] = {
+    val res = rowsByColumns.toBuffer
+    var i   = 0
+
+    while(i < cols) {
+      res(tupToIndex((i, to)))    = getValue((i, from))
+      res(tupToIndex((i, from)))  = getValue((i, to))
+      i += 1
+    }
+
+    copy(rowsByColumns = res.toIndexedSeq)
+  }
+
+  def mapRow(rowIdx: Int)(f: (V, Int) => V): Matrix[V] = {
+    val res = rowsByColumns.toBuffer
+    var i   = 0
+
+    while(i < cols) {
+      val j = tupToIndex(i, rowIdx)
+      res(j) = f(rowsByColumns(j), i)
+      i += 1
+    }
+
+    copy(rowsByColumns = res.toIndexedSeq)
+  }
+
+  // Row operation
+  def combineRows(rowIdx: Int, from: RowVector[V], modifier: V)(implicit field: Field[V]): Matrix[V] = {
+    mapRow(rowIdx)((v, idx) => field.plus(v, field.times(from(idx), modifier)))
+  }
+
   def +(that: Matrix[V]): Matrix[V] = elemWiseOp(that)(valueMonoid.plus)
 
   def *[That, Res](that: That)(implicit product: MatrixProduct[Matrix[V], That, Res]): Res =
@@ -89,6 +121,8 @@ object Matrix {
 }
 
 class RowVector[V: Monoid](val values: IndexedSeq[V]) {
+  @inline final def apply(idx: Int) = values.apply(idx)
+
   def *[That, Res](that: That)(implicit product: MatrixProduct[RowVector[V], That, Res]): Res =
     product(this, that)
 }

@@ -17,8 +17,18 @@ object MatrixProduct {
 
   implicit def colVectorRightProduct[V](implicit ring: Ring[V]): MatrixProduct[RowVector[V], ColVector[V], V] =
     new MatrixProduct[RowVector[V], ColVector[V], V] {
-      override def apply(l: RowVector[V], r: ColVector[V]): V = (l.values, r.values).zipped.foldLeft(ring.zero) {
-        case (acc, (lv, rv)) => ring.plus(acc, ring.times(lv, rv))
+      override def apply(l: RowVector[V], r: ColVector[V]): V = {
+        val lv = l.values
+        val rv = r.values
+        var res = ring.zero
+        var i = 0
+
+        while (i < lv.size) {
+          res = ring.plus(res, ring.times(lv(i), rv(i)))
+          i += 1
+        }
+
+        res
       }
     }
 

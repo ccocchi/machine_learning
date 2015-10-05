@@ -17,6 +17,13 @@ class MatrixTest extends WordSpec {
    */
   val matrix2 = new Matrix(3, 2, IndexedSeq(2, 0, 1, -1, 4, 1))
 
+
+  /*
+    [ 1   3
+      3   2 ]
+   */
+  val floatMatrix = new Matrix(2, 2, IndexedSeq(1.0, 3.0, 3.0, 2.0))
+
   "A matrix" can {
     "have a size" in {
       assert(matrix.size == 6)
@@ -65,6 +72,22 @@ class MatrixTest extends WordSpec {
       assertResult(2)(m.rows)
       assertResult(3)(m.cols)
       assertResult(IndexedSeq(1, 0, 3, 2, -3, 7))(m.rowsByColumns)
+    }
+
+    "swap rows" in {
+      val m = matrix.swapRows(1, 2)
+      assertResult(IndexedSeq(1, -3, 3, 0, 7, 2))(m.rowsByColumns)
+    }
+
+    "apply a function to a row" in {
+      val m = matrix.mapRow(1)((v, _) => v * 2)
+      assertResult(IndexedSeq(1, 6, -3, 0, 4, 7))(m.rowsByColumns)
+    }
+
+    "combine rows" in {
+      val values = floatMatrix.row(0)
+      val m = floatMatrix.combineRows(1, values, -3.0)
+      assertResult(IndexedSeq(1.0, 0.0, 3.0, -7.0))(m.rowsByColumns)
     }
   }
 
