@@ -25,7 +25,7 @@ object MatrixOperation {
 //    inner(m, 0)
 //  }
 
-  def print[V](matrix: Matrix[V]): Unit = {
+  def print[V](matrix: DenseMatrix[V]): Unit = {
     val interpolation = List.fill(matrix.cols)("%s").mkString("\t")
 
     for (i <- 0 to matrix.rows - 1) {
@@ -33,10 +33,15 @@ object MatrixOperation {
     }
   }
 
-  def gaussJordan[V](matrix: Matrix[V])(implicit field: Field[V], compare: Ordering[V]) = {
+  def gaussJordan[V](matrix: DenseMatrix[V])(implicit field: Field[V], compare: Ordering[V]): DenseMatrix[V] = {
+    val limit = matrix match {
+      case Matrix(_, c, _) => c
+      case AugmentedMatrix(_, c, _, _, _) => c
+    }
+
     @tailrec
-    def reduce(m: Matrix[V], row: Int, col: Int): Matrix[V] = {
-      if (col == 3) // m.cols, changed for testing
+    def reduce(m: DenseMatrix[V], row: Int, col: Int): DenseMatrix[V] = {
+      if (col == limit) // m.cols, changed for testing
         return m
 
       val pivot  = m.getValue((row, col))

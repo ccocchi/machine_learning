@@ -89,6 +89,12 @@ class MatrixTest extends WordSpec {
       val m = floatMatrix.combineRows(1, values, -3.0)
       assertResult(IndexedSeq(1.0, 0.0, 3.0, -7.0))(m.rowsByColumns)
     }
+
+    "be inversed" in {
+      val matrix  = new Matrix(2, 2, IndexedSeq(4.0, 3.0, 3.0, 2.0))
+      val inverse = matrix.inverse
+      assertResult(IndexedSeq(-2.0, 3.0, 3.0, -4.0))(inverse.rowsByColumns)
+    }
   }
 
   "An identity matrix" can {
