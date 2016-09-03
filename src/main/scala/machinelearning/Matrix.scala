@@ -60,13 +60,17 @@ abstract class DenseMatrix[V: Monoid] extends MatrixLike[V] {
   }
 
   def row(idx: Int): RowVector[V] = {
+    new RowVector[V](rowValues(idx))
+  }
+
+  def rowValues(idx: Int): IndexedSeq[V] = {
     val res = IndexedSeq.newBuilder[V]
     var i = 0
     while (i < cols) {
       res += rowsByColumns(tupToIndex(i, idx))
       i += 1
     }
-    new RowVector[V](res.result())
+    res.result()
   }
 
   def swapRows(from: Int, to: Int): DenseMatrix[V] = {
@@ -212,8 +216,8 @@ object Matrix {
     Matrix(i, i, values.toIndexedSeq)
   }
 
-  def zero[V](rows: Int, cols: Int)(implicit f: Monoid[V]): Matrix[V] = {
-    new Matrix[V](rows, cols, IndexedSeq.fill(rows * cols)(f.zero))
+  def fill[V](rows: Int, cols: Int)(f: => V): Matrix[V] = {
+    new Matrix[V](rows, cols, IndexedSeq.fill(rows * cols)(f))
   }
 }
 
@@ -243,6 +247,8 @@ class ColVector[V: Monoid](val values: IndexedSeq[V]) {
   def **(other: ColVector[V])(implicit f: Ring[V]): ColVector[V] = {
     new ColVector[V]((values, other.values).zipped.map((v1, v2) => f.times(v1, v2)))
   }
+
+  final def dimension = values.size
 }
 
 class Scalar[V](val value: V) extends Serializable {

@@ -1,10 +1,13 @@
 package neuralnetwork
 
 import machinelearning.ColVector
-import neuralnetwork.Network.LayerWithResult
+import neuralnetwork.Network.{Input, LayerWithResult}
 
 object Network {
   type LayerWithResult = (Option[Layer], Option[ColVector[Double]])
+  type Input = IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]
+
+  val regularizationParameter: Double = 0
 }
 
 /**
@@ -18,13 +21,17 @@ class Network( val inputSize: Int,
 {
   lazy val layers = buildLayers()
 
-  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): Unit = {
-    val inputs = new ColVector(x)
-    val result = compute(inputs)
-
-    layers.foldRight[LayerWithResult]((None, Some(result))) { case (l1, l2) => l1.computeError(l2); (Some(l1), None) } // maybe l2 here but I don't think so
-    layers.foldLeft(inputs)
-  }
+//  def train(input: Input): Unit = {
+//    input.foreach { case (inputs, result) => train(inputs, result) }
+//  }
+//
+//  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): Unit = {
+//    val inputs = new ColVector(x)
+//    val result = compute(inputs)
+//
+//    layers.foldRight[LayerWithResult]((None, Some(result))) { case (l1, l2) => l1.computeError(l2); (Some(l1), None) } // maybe l2 here but I don't think so
+//    layers.foldLeft(inputs) { case (vs, l) => l.computeDelta(inputs); l.currentValue.get }
+//  }
 
   def compute(colVector: ColVector[Double]): ColVector[Double] = {
     layers.foldLeft(colVector) { (values, l) => l.compute(values) }
