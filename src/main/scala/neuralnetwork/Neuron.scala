@@ -1,10 +1,5 @@
 package neuralnetwork
 
-import machinelearning.ColVector
-
-/**
-  * Created by ccocchi on 02/09/16.
-  */
 class Neuron {
   def compute(inputs: Seq[Double], weights: Seq[Double]): Double = {
     assert(inputs.size == weights.size, s"inputs have dimension ${inputs.size} and weights ${weights.size}")

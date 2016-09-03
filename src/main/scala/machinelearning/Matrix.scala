@@ -134,8 +134,14 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
 
   def +(that: Matrix[V]): Matrix[V] = elemWiseOp(that)(valueMonoid.plus)
 
+  def -(that: Matrix[V])(implicit group: Group[V]) = elemWiseOp(that)(group.minus)
+
   def *[That, Res](that: That)(implicit product: MatrixProduct[Matrix[V], That, Res]): Res =
     product(this, that)
+
+  def dropFirstColumn: Matrix[V] = {
+    copy(cols = cols - 1, rowsByColumns = rowsByColumns.drop(rows))
+  }
 
   def inverse(implicit f: Field[V], c: Ordering[V]): Matrix[V] = {
     if (rows == 2 && cols == 2)
