@@ -7,7 +7,7 @@ class ComputeTest extends WordSpec {
   val layer = new Layer(3, 2)
   layer.weightsMatrix = Matrix(3, 3, IndexedSeq(0.3, 0.8, 0.1, 0.4, 0.3, 0.6, 0.9, 0.2, 0.4))
 
-  val outputLayer = new OutputLayer(1, 3)
+  val outputLayer = new Layer(1, 3)
   outputLayer.weightsMatrix = Matrix(1, 4, IndexedSeq(0.3, 0.1, 0.8, 0.1))
 
   val network = new Network(2, 1, 1, 3) {

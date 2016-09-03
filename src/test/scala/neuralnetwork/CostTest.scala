@@ -7,7 +7,7 @@ class CostTest extends WordSpec {
   val layer = new Layer(2, 2)
   layer.weightsMatrix = Matrix(2, 3, IndexedSeq(0.0, 0.0, 0.1, 0.4, 0.8, 0.6))
 
-  val outputLayer = new OutputLayer(1, 2)
+  val outputLayer = new Layer(1, 2)
   outputLayer.weightsMatrix = Matrix(1, 3, IndexedSeq(0.0, 0.3, 0.9))
 
   val network = new Network(2, 1, 1, 2) {

@@ -1,12 +1,12 @@
 package neuralnetwork
 
-import machinelearning.{ColVector, Matrix}
+import machinelearning.{ColVector, Matrix, MatrixOperation}
 import neuralnetwork.Network.Input
 
 object Network {
   type Input = IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]
 
-  val regularizationParameter: Double = 1
+  val regularizationParameter: Double = 0.01
   val learningRate = 0.1
 }
 
@@ -31,7 +31,13 @@ class Network( val inputSize: Int,
 //  }
 
 
-  def train(input: Input): Unit = {
+  /**
+    * Train the network with given input
+    *
+    * @param input Dataset of inputs and results
+    * @return The partial detivative value of the cost function
+    */
+  def train(input: Input): Double = {
     var deltas = layers.map(l => Matrix.fill(l.weightsMatrix.rows, l.weightsMatrix.cols)(0.0))
 
 //    println("initial deltas")
@@ -70,6 +76,8 @@ class Network( val inputSize: Int,
     (layers, gradientMatrices).zipped.foreach { (l, m) =>
        l.weightsMatrix = l.weightsMatrix - Network.learningRate * m
     }
+
+    gradientMatrices.map(m => m.rowsByColumns.map(Math.abs).sum).sum
   }
 
   /**
@@ -89,6 +97,13 @@ class Network( val inputSize: Int,
     val thetas  = layers.map(_.weightsMatrix).reverse // theta3, theta2, theta1
 
     val initialError = aValues.head - new ColVector(y)
+    println(s"initial error: ${initialError.values}")
+
+
+//    val initialError = {
+//      val values = (aValues.head.values, y).zipped.map((o, t) => (t - o) * (1 - o) * o)
+//      new ColVector(values)
+//    }
 
 //    println("initial error")
 //    println(initialError.values)
@@ -132,7 +147,7 @@ class Network( val inputSize: Int,
   }
 
   // List(a1, a2, a3, a4)
-  def activationValues(inputs: ColVector[Double]): Seq[ColVector[Double]] = {
+  private def activationValues(inputs: ColVector[Double]): Seq[ColVector[Double]] = {
     layers.scanLeft(inputs) { (values, l) => l.compute(values) }
   }
 
