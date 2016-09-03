@@ -33,8 +33,26 @@ class Network( val inputSize: Int,
 //    layers.foldLeft(inputs) { case (vs, l) => l.computeDelta(inputs); l.currentValue.get }
 //  }
 
-  def compute(colVector: ColVector[Double]): ColVector[Double] = {
-    layers.foldLeft(colVector) { (values, l) => l.compute(values) }
+  def compute(inputs: ColVector[Double]): ColVector[Double] = {
+    layers.foldLeft(inputs) { (values, l) => l.compute(values) }
+  }
+
+  def cost(input: Input): Double = {
+    val m = input.size
+    val partOne = input.map { case(inputs, expected) =>
+      val result = compute(new ColVector(inputs))
+      (result.values, expected).zipped.foldLeft(0.0) { case (res, (x, y)) => res + y * Math.log(x) + (1 - y) * Math.log(1 - x) }
+    }
+
+    val partTwo = layers.foldLeft(0.0) { (res, l) =>
+      l.weightsMatrix.rowsByColumns.foldLeft(0.0)((acc, d) => acc + d * d)
+    }
+
+    (-partOne.sum / m) + (Network.regularizationParameter * partTwo / m)
+  }
+
+  def activationValues(inputs: ColVector[Double]): Seq[ColVector[Double]] = {
+    layers.scanLeft(inputs) { (values, l) => l.compute(values) }
   }
 
   private def buildLayers(): IndexedSeq[Layer] = {

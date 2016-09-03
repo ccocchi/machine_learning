@@ -216,7 +216,7 @@ object Matrix {
     Matrix(i, i, values.toIndexedSeq)
   }
 
-  def fill[V](rows: Int, cols: Int)(f: => V): Matrix[V] = {
+  def fill[V: Monoid](rows: Int, cols: Int)(f: => V): Matrix[V] = {
     new Matrix[V](rows, cols, IndexedSeq.fill(rows * cols)(f))
   }
 }
