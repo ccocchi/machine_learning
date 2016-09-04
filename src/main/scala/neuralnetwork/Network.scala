@@ -11,7 +11,7 @@ class Network( val inputSize: Int,
                val outputSize: Int,
                val hiddenLayers: Int,
                val unitsPerLayer: Int,
-               learningRate: Double,
+               var learningRate: Double,
                regularizationParameter: Double
              )
 {
@@ -23,7 +23,7 @@ class Network( val inputSize: Int,
     * @param input Dataset of inputs and results
     * @return The partial detivative value of the cost function
     */
-  def train(input: Input): Unit = {
+  def train(input: Input, datasetSize: Int): Unit = {
     var deltas = layers.map(l => Matrix.fill(l.weightsMatrix.rows, l.weightsMatrix.cols)(0.0))
     var gradientBias = layers.map(l => new ColVector(IndexedSeq.fill(l.biasVector.dimension)(0.0)))
 
@@ -36,7 +36,7 @@ class Network( val inputSize: Int,
     val m = input.size
     val updatedWeights = (deltas, layers.map(_.weightsMatrix)).zipped.map { (dmat, wmat) =>
       val values = (dmat.rowsByColumns, wmat.rowsByColumns).zipped.map { (d, w) =>
-        (1 - regularizationParameter * (learningRate / m)) * w - (learningRate / m) * d
+        (1 - regularizationParameter * (learningRate / datasetSize)) * w - (learningRate / m) * d
       }
       Matrix(dmat.rows, dmat.cols, values)
     }

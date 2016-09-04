@@ -211,11 +211,10 @@ object Main {
     var a = input.map(c => c._1).transpose
     for(i <- a.indices) {
       val seq = a(i)
-      val max = seq.max
-      val min = seq.min
       val mean = seq.sum / seq.size.toDouble
-      val newSeq = seq.map(v => (v - mean)/ (max - min))
-      a = a.updated(i, newSeq)
+      val newSeq = seq.map(v => v - mean)
+      val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
+      a = a.updated(i, newSeq.map(v => v / std))
     }
 
     Random.shuffle((a.transpose, input).zipped.map((a, b) => (a, b._2)))
@@ -226,26 +225,43 @@ object Main {
     case _             => b
   }
 
-  val network = new Network(8, 10, 1, 100, 1.0, 0.0)
+  val network = new Network(8, 10, 1, 100, 1, 0.1)
   val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")
   val input   = sourceToInput(ysource)
   val ninput  = normalize(input)
 
-  var cost = network.cost(ninput)
-  println(s"cost: ${network.cost(ninput)}")
+  val validationData = ninput.take(400)
+  val trainingData = ninput.drop(400)
 
-  for(i <- 0 to 400) {
-    network.train(input)
+  println(s"cost: ${network.cost(trainingData)}")
+  val batches = trainingData.grouped(100).toSeq
+
+  for (i <- 1 to 900) {
+    if (i == 450)
+      network.learningRate = 0.1
+    if (i == 800)
+      network.learningRate = 0.01
+
+    batches.foreach(b => network.train(b, trainingData.size))
   }
-  println(s"cost: ${network.cost(ninput)}")
+  println(s"cost: ${network.cost(trainingData)}")
 
   var hit = 0
-  ninput.foreach { case (inputs, result) =>
+  trainingData.foreach { case (inputs, result) =>
     val r = network.compute(new ColVector[Double](inputs))
     if (r.values.zipWithIndex.maxBy(_._1)._2 == result.zipWithIndex.maxBy(_._1)._2)
       hit += 1
   }
 
-  println(f"Accuracy on training set: ${(hit.toDouble / ninput.size.toDouble) * 100}%1.2f %%")
+  println(f"Accuracy on training set: ${(hit.toDouble / trainingData.size.toDouble) * 100}%1.2f %%")
+
+  hit = 0
+  validationData.foreach { case (inputs, result) =>
+    val r = network.compute(new ColVector[Double](inputs))
+    if (r.values.zipWithIndex.maxBy(_._1)._2 == result.zipWithIndex.maxBy(_._1)._2)
+      hit += 1
+  }
+
+  println(f"Accuracy on validation set: ${(hit.toDouble / validationData.size.toDouble) * 100}%1.2f %%")
 
 }
