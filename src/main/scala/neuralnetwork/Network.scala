@@ -5,31 +5,17 @@ import neuralnetwork.Network.Input
 
 object Network {
   type Input = IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]
-
-  val regularizationParameter: Double = 0.0
-  val learningRate = 0.1
 }
 
 class Network( val inputSize: Int,
                val outputSize: Int,
                val hiddenLayers: Int,
-               val unitsPerLayer: Int
+               val unitsPerLayer: Int,
+               learningRate: Double,
+               regularizationParameter: Double
              )
 {
   lazy val layers = buildLayers()
-
-//  def train(input: Input): Unit = {
-//    input.foreach { case (inputs, result) => train(inputs, result) }
-//  }
-//
-//  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): Unit = {
-//    val inputs = new ColVector(x)
-//    val result = compute(inputs)
-//
-//    layers.foldRight[LayerWithResult]((None, Some(result))) { case (l1, l2) => l1.computeError(l2); (Some(l1), None) } // maybe l2 here but I don't think so
-//    layers.foldLeft(inputs) { case (vs, l) => l.computeDelta(inputs); l.currentValue.get }
-//  }
-
 
   /**
     * Train the network with given input
@@ -37,47 +23,28 @@ class Network( val inputSize: Int,
     * @param input Dataset of inputs and results
     * @return The partial detivative value of the cost function
     */
-  def train(input: Input): Double = {
+  def train(input: Input): Unit = {
     var deltas = layers.map(l => Matrix.fill(l.weightsMatrix.rows, l.weightsMatrix.cols)(0.0))
-
-//    println("initial deltas")
-//    deltas.foreach { d => MatrixOperation.print(d); println() }
-//
-//    println("weights")
-//    layers.map(_.weightsMatrix).foreach { d => MatrixOperation.print(d); println() }
+    var gradientBias = layers.map(l => new ColVector(IndexedSeq.fill(l.biasVector.dimension)(0.0)))
 
     input.foreach { case (x, y) =>
-      val ds = train(x, y)
+      val (ds, sigmas) = train(x, y)
       deltas = (deltas, ds).zipped.map(_ + _)
-//      { (acc, delt) =>
-//        println("acc:")
-//        MatrixOperation.print(acc)
-//        println()
-//
-//        println("delta:")
-//        MatrixOperation.print(delt)
-//        println()
-//        acc + delt
-//      }
+      gradientBias = (gradientBias, sigmas).zipped.map(_ + _)
     }
-
-//    println("trained deltas")
-//    deltas.foreach { d => MatrixOperation.print(d); println() }
 
     val m = input.size
-    val gradientMatrices = (deltas, layers).zipped.map { (d, l) =>
-      val w = l.weightsMatrix
-
-      val biasSeq = d.rowsByColumns.take(d.rows).map(v => v / m)
-      val tailSeq = (d.rowsByColumns.drop(d.rows), w.rowsByColumns.drop(w.rows)).zipped.map((dv, wv) => (dv / m) + Network.regularizationParameter * wv )
-      Matrix(d.rows, d.cols, biasSeq ++ tailSeq)
+    val updatedWeights = (deltas, layers.map(_.weightsMatrix)).zipped.map { (dmat, wmat) =>
+      val values = (dmat.rowsByColumns, wmat.rowsByColumns).zipped.map { (d, w) =>
+        (1 - regularizationParameter * (learningRate / m)) * w - (learningRate / m) * d
+      }
+      Matrix(dmat.rows, dmat.cols, values)
     }
 
-    (layers, gradientMatrices).zipped.foreach { (l, m) =>
-       l.weightsMatrix = l.weightsMatrix - Network.learningRate * m
+    (layers, updatedWeights, gradientBias).zipped.foreach { (l, mat, b) =>
+       l.weightsMatrix = mat
+       l.biasVector = l.biasVector - new ColVector(b.values.map(v => v * (learningRate / m)))
     }
-
-    gradientMatrices.last.rowsByColumns.map(Math.abs).sum
   }
 
   /**
@@ -87,30 +54,18 @@ class Network( val inputSize: Int,
     * @param y The output values
     * @return A matrix of deltas for each layer's weight matrix
     */
-  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): Seq[Matrix[Double]] = {
+  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): (Seq[Matrix[Double]], Seq[ColVector[Double]]) = {
     val aValuesFull = activationValues(new ColVector(x)) // a1, a2, a3, a4
-
-//    println("activation values")
-//    println(aValuesFull.map(_.values))
 
     val aValues = aValuesFull.tail.reverse // a4, a3, a2
     val thetas  = layers.map(_.weightsMatrix).reverse // theta3, theta2, theta1
 
+    val a4 = aValues.head
     val initialError = aValues.head - new ColVector(y)
-    //println(s"initial error: ${initialError.values}")
-
-
-//    val initialError = {
-//      val values = (aValues.head.values, y).zipped.map((o, t) => (t - o) * (1 - o) * o)
-//      new ColVector(values)
-//    }
-
-//    println("initial error")
-//    println(initialError.values)
 
     val tailErrors = (aValues.tail, thetas).zipped.scanLeft(initialError) { case(err, (values, weights)) =>
-      val merr = weights.dropFirstColumn.transpose.asInstanceOf[Matrix[Double]] * err
-      val vls  = values ** (ColVector.vectorOfOnes[Double](values.dimension) - values)
+      val merr = weights.transpose.asInstanceOf[Matrix[Double]] * err
+      val vls  = values ** (ColVector.vectorOfOnes[Double](values.dimension) - values) // sp
       assert(merr.cols == 1)
       val errVec = new ColVector(merr.rowsByColumns)
       errVec ** vls
@@ -118,14 +73,13 @@ class Network( val inputSize: Int,
 
     val errors = tailErrors.toIndexedSeq.reverse // sigma2, sigma3, sigma4
 
-//    println("sigmas")
-//    println(errors.map(_.values))
-
-    (aValuesFull.take(errors.size), errors).zipped.map { (a, s) =>
+    val m = (aValuesFull.take(errors.size), errors).zipped.map { (a, s) =>
       val smat = Matrix(s.dimension, 1, s.values)
-      val aTranspose = Matrix(1, a.dimension + 1, 1.0 +: a.values)
+      val aTranspose = Matrix(1, a.dimension, a.values)
       smat * aTranspose
     }
+
+    (m, errors)
   }
 
   def compute(inputs: ColVector[Double]): ColVector[Double] = {
@@ -143,7 +97,7 @@ class Network( val inputSize: Int,
       l.weightsMatrix.rowsByColumns.foldLeft(0.0)((acc, d) => acc + d * d)
     }
 
-    (-partOne.sum / m) + (Network.regularizationParameter * partTwo / m)
+    (-partOne.sum / m) + (regularizationParameter * partTwo / (2 * m))
   }
 
   // List(a1, a2, a3, a4)

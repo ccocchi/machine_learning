@@ -272,6 +272,10 @@ class ColVector[V: Monoid](val values: IndexedSeq[V]) {
     new ColVector[V]((values, other.values).zipped.map((v1, v2) => f.minus(v1, v2)))
   }
 
+  def +(other: ColVector[V])(implicit f: Field[V]): ColVector[V] = {
+    new ColVector[V]((values, other.values).zipped.map((v1, v2) => f.plus(v1, v2)))
+  }
+
   // Element-wise multiplication
   def **(other: ColVector[V])(implicit f: Ring[V]): ColVector[V] = {
     new ColVector[V]((values, other.values).zipped.map((v1, v2) => f.times(v1, v2)))
