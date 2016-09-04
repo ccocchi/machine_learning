@@ -3,7 +3,7 @@ package neuralnetwork
 import machinelearning.{ColVector, Matrix}
 
 object Layer {
-  final val epsilon = 0.0001
+  final val epsilon = 10
 }
 
 class Layer(size: Int, inputsSize: Int) {

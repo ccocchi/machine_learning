@@ -6,7 +6,7 @@ import neuralnetwork.Network.Input
 object Network {
   type Input = IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]
 
-  val regularizationParameter: Double = 0.01
+  val regularizationParameter: Double = 0.0
   val learningRate = 0.1
 }
 
@@ -77,7 +77,7 @@ class Network( val inputSize: Int,
        l.weightsMatrix = l.weightsMatrix - Network.learningRate * m
     }
 
-    gradientMatrices.map(m => m.rowsByColumns.map(Math.abs).sum).sum
+    gradientMatrices.last.rowsByColumns.map(Math.abs).sum
   }
 
   /**
@@ -97,7 +97,7 @@ class Network( val inputSize: Int,
     val thetas  = layers.map(_.weightsMatrix).reverse // theta3, theta2, theta1
 
     val initialError = aValues.head - new ColVector(y)
-    println(s"initial error: ${initialError.values}")
+    //println(s"initial error: ${initialError.values}")
 
 
 //    val initialError = {

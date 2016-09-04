@@ -13,6 +13,29 @@ sealed trait MatrixLike[V] extends Serializable {
   def updated(position: (Int, Int), value: V): MatrixLike[V]
 }
 
+class MutableMatrix[V: Monoid](val rows: Int, val cols: Int, val rowsByColumns: mutable.IndexedSeq[V]) extends MatrixLike[V] {
+  private[this] val valueMonoid = implicitly[Monoid[V]]
+
+  // This Seq is column-major, i.e. elements in the same column are next to each other in the array
+  // position = (column, row)
+  protected def tupToIndex(position: (Int, Int)): Int = position._1 * rows + position._2
+
+  override def getValue(position: (Int, Int)): V = rowsByColumns(tupToIndex(position))
+
+  override def updated(position: (Int, Int), value: V): MatrixLike[V] = {
+    rowsByColumns.updated(tupToIndex(position), value)
+    this
+  }
+
+  def +(other: Matrix[V]): MutableMatrix[V] = {
+    other.rowsByColumns.zipWithIndex.foreach { case (v, i) =>
+      rowsByColumns.update(i, valueMonoid.plus(rowsByColumns(i), v))
+    }
+    this
+  }
+}
+
+
 /**
  * Implementation of a MatrixLike using an IndexedSeq to store the data
  * internally.
