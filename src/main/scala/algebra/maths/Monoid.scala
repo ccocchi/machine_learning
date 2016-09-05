@@ -1,5 +1,4 @@
-package machinelearning
-
+package algebra.maths
 
 /**
  * A monoid is a semi-group with an additive identity, i.e. (a+0) = (0+a) = a

@@ -1,5 +1,8 @@
 package machinelearning
 
+import algebra.MatrixProduct
+import algebra.maths.{Field, Group, Monoid, Ring}
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
@@ -129,7 +132,6 @@ abstract class DenseMatrix[V: Monoid] extends MatrixLike[V] {
 
   def transpose: DenseMatrix[V] = {
     val res = IndexedSeq.newBuilder[V]
-
     var i = 0
     while(i < rows) {
       row(i).values.foreach(v => res += v)
@@ -230,6 +232,8 @@ object AugmentedMatrix {
     new AugmentedMatrix[V](a.rows, a.cols, b.rows, b.cols, cells)
   }
 }
+
+
 
 object Matrix {
   def identity[V](i: Int)(implicit ring: Ring[V]): Matrix[V] = {

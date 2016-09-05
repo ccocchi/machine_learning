@@ -1,4 +1,4 @@
-package machinelearning
+package algebra.maths
 
 /**
  * A group is a monoid that also has substraction

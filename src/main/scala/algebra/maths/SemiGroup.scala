@@ -1,4 +1,4 @@
-package machinelearning
+package algebra.maths
 
 /**
  * A class with an associative plus operation

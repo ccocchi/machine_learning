@@ -83,6 +83,7 @@ class Network( val inputSize: Int,
   }
 
   def compute(inputs: ColVector[Double]): ColVector[Double] = {
+    layers.map(_.weightsMatrix).foreach { m => println(s"${m.rows}x${m.cols}") }
     layers.foldLeft(inputs) { (values, l) => l.compute(values) }
   }
 

@@ -1,5 +1,7 @@
 package machinelearning
 
+import algebra.maths.Field
+
 import scala.annotation.tailrec
 
 object MatrixOperation {

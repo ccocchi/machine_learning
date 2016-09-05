@@ -21,6 +21,8 @@ class Layer(size: Int, inputsSize: Int) {
 
   var biasVector = new ColVector(IndexedSeq.fill(size)(1.0))
 
+  var momentumMatrix: Matrix[Double] = Matrix.fill(size, inputsSize)(0.0)
+
   /**
     * Compute the values for the entire layer and store them in a var before returning them.
     *

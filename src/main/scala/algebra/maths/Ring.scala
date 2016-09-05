@@ -1,4 +1,4 @@
-package machinelearning
+package algebra.maths
 
 /**
  * A ring is a Group with left associativity multiplication
