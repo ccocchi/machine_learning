@@ -11,7 +11,7 @@ class Layer(val size: Int, val inputsSize: Int) {
     (Math.random() * (2 * Layer.epsilon) - Layer.epsilon) / Math.sqrt(inputsSize)
   }
 
-  var biasVector = MVector.fill(size)(0.0)
+  var biasVector: MatrixLike[Double] = MVector.fill(size)(1.0)
 
   final def compute(inputs: MatrixLike[Double]): MatrixLike[Double] = {
     weightsMatrix.dot(inputs).plus(biasVector).map(activationFunction)
