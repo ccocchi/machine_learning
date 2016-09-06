@@ -6,7 +6,6 @@ import neuralnetwork.Network
 import neuralnetwork.Network.Input
 
 import scala.io.Source
-import scala.util.Random
 
 object Main {
   def main (args: Array[String]): Unit = {
@@ -283,8 +282,8 @@ object Main {
         val seq = a(i)
         val mean = seq.sum / seq.size.toDouble
         val newSeq = seq.map(v => v - mean)
-        //val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
-        a = a.updated(i, newSeq)
+        val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
+        a = a.updated(i, newSeq.map(v => v / std))
       }
 
       (a.transpose, input).zipped.map((a, b) => (a, b._2))
@@ -311,11 +310,9 @@ object Main {
       (ms._1.groupByColumns(batchSize), ms._2.groupByColumns(batchSize)).zipped.toList
     }
 
-    val network = new Network(List(8, 100, 10), 0.1, 0.0)
+    val network = new Network(List(8, 100, 10), 1, 0.0)
     val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")
     val input   = normalize(sourceToInput(ysource))
-
-
 
     //val validationData  = seqToMat(input.take(400))
     val data = seqToMat(input)
@@ -341,7 +338,13 @@ object Main {
     println(s"* dataset size: $totalInputs")
     println(s"* initial cost: ${network.cost(trainingData._1, trainingData._2)}")
 
-    for (i <- 1 to 200) {
+    for (i <- 1 to 900) {
+      if (i % 100 == 0)
+        println(s"* cost at epoch $i: ${network.cost(trainingData._1, trainingData._2)}")
+      if (i == 450)
+        network.learningRate = 0.1
+      if (i == 800)
+        network.learningRate = 0.01
       batches.foreach(b => network.train(b._1, b._2, totalInputs))
     }
 
@@ -354,7 +357,7 @@ object Main {
         hit += 1
     }
 
-    println(f"* training accuracy: ${(hit.toDouble / 1484) * 100}%1.2f %%")
+    println(f"* training accuracy: ${(hit.toDouble / totalInputs) * 100}%1.2f %%")
 
 //    var hit = 0
 //    batches.foreach { case (inputs, result) =>
