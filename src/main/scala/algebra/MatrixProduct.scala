@@ -23,7 +23,7 @@ object MatrixProduct {
             var tmp = ring.zero
 
             while(k < l.colSize) {
-              tmp = ring.plus(tmp, ring.times(l(k, j), r(i, k)))
+              tmp = ring.plus(tmp, ring.times(l(j, k), r(k, i)))
               k += 1
             }
 

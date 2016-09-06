@@ -170,7 +170,7 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
 
   def inverse(implicit f: Field[V], c: Ordering[V]): Matrix[V] = {
     if (rows == 2 && cols == 2)
-      optimizedInverse2x2
+      this
     else
     {
       val identity = Matrix.identity[V](rows)
@@ -180,15 +180,15 @@ case class Matrix[V: Monoid](rows: Int, cols: Int, rowsByColumns: IndexedSeq[V])
     }
   }
 
-  private[this] def optimizedInverse2x2(implicit f: Field[V]): Matrix[V] = {
-    val a = rowsByColumns.head
-    val b = rowsByColumns(2)
-    val c = rowsByColumns(1)
-    val d = rowsByColumns(3)
-    val numerator = f.minus(f.times(a, d), f.times(b, c))
-
-    Matrix(2, 2, IndexedSeq(d, f.negate(c), f.negate(b), a)) * new Scalar[V](f.div(f.one, numerator))
-  }
+//  private[this] def optimizedInverse2x2(implicit f: Field[V]): Matrix[V] = {
+//    val a = rowsByColumns.head
+//    val b = rowsByColumns(2)
+//    val c = rowsByColumns(1)
+//    val d = rowsByColumns(3)
+//    val numerator = f.minus(f.times(a, d), f.times(b, c))
+//
+//    Matrix(2, 2, IndexedSeq(d, f.negate(c), f.negate(b), a)) * new Scalar[V](f.div(f.one, numerator))
+//  }
 }
 
 case class AugmentedMatrix[V: Field](

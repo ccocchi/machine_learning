@@ -11,10 +11,10 @@ import scala.util.Random
 
 object Main {
   def main (args: Array[String]) {
-    val m = new algebra.MVector[Int](IndexedSeq(1)) + IndexedSeq(1).reshape(1, 1)
-    println(m.values)
-
-    val n = m.dot(2)
+//    val m = new algebra.MVector[Int](IndexedSeq(1)) + IndexedSeq(1).reshape(1, 1)
+//    println(m.values)
+//
+//    val n = m.dot(2)
 
 //    val matrix  = new Matrix[Double](4, 3, IndexedSeq(1, 3, -3, 0, 2, 7, 1, 3, -3, 0, 2, 7))
 //    val mutMatrix  = new MutableMatrix[Double](4, 3, mutable.IndexedSeq(1, 3, -3, 0, 2, 7, 1, 3, -3, 0, 2, 7))
@@ -77,29 +77,65 @@ object Main {
     //println(network.cost(input))
     //network.train(input)
 
-//
-//    val source = Source.fromFile("/Users/ccocchi/code/machine_learning/data/data.csv")
-//
-//    val input = source.getLines().map { s =>
-//      val array = s.split(',')
-//      val result = IndexedSeq(array.head.toDouble)
-//      val inputs = array.slice(1, array.length).toIndexedSeq.map(_.toDouble)
-//      (inputs, result)
-//    }.toIndexedSeq
-//
-//    val (sf, nyc) = input.partition(i => i._2.head == 0.0)
-//    val input3 = intercalate(sf.toList, nyc.toList).toIndexedSeq
-//
-//    var a = input3.map(c => c._1).transpose
-//    for(i <- 2 to 6) {
-//      val seq = a(i)
-//      val max = seq.max
-//      val min = seq.min
-//      val mean = seq.sum / seq.size.toDouble
-//      val newSeq = seq.map(v => v - mean)
-//      val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
-//      a = a.updated(i, newSeq.map(v => v / std))
-//    }
+    val source = Source.fromFile("/Users/ccocchi/code/machine_learning/data/data.csv")
+
+    val input = source.getLines().map { s =>
+      val array = s.split(',')
+      val result = IndexedSeq(array.head.toDouble)
+      val inputs = array.slice(1, array.length).toIndexedSeq.map(_.toDouble)
+      (inputs, result)
+    }.toIndexedSeq
+
+    val (sf, nyc) = input.partition(i => i._2.head == 0.0)
+    val input3 = intercalate(sf.toList, nyc.toList).toIndexedSeq
+
+    var a = input3.map(c => c._1).transpose
+    for(i <- 2 to 6) {
+      val seq = a(i)
+      val max = seq.max
+      val min = seq.min
+      val mean = seq.sum / seq.size.toDouble
+      val newSeq = seq.map(v => v - mean)
+      val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
+      a = a.updated(i, newSeq.map(v => v / std))
+    }
+
+    val aT = a.transpose
+    val rT = input3.map(_._2)
+
+    val Ifull = aT.flatten.reshape(7, aT.size)
+    val Ofull = rT.flatten.reshape(1, rT.size)
+
+    val inpt = aT.zip(rT).grouped(40).toVector.map(_.unzip).map { case (a, b) =>
+      (a.flatten.reshape(7, a.size), b.flatten.reshape(1, a.size))
+    }
+
+    val network = new Network(List(7, 15, 1), 1, 0.0)
+
+    var i = 0
+    while (i < 10000) {
+      if (i == 1000)
+        network.learningRate = 0.1
+      if (i == 2500)
+        network.learningRate = 0.01
+      if (i == 9000)
+        network.learningRate = 0.001
+      inpt.foreach { case(x, y) => network.train(x, y, 251) }
+      i += 1
+    }
+
+    var hit = 0
+    inpt.foreach { case(x, y) =>
+      val res = network.compute(x)
+      (res.values, y.values).zipped.foreach { case (xx, yy) =>
+        if (Math.round(xx) == yy.toLong)
+          hit += 1
+      }
+    }
+
+    println(f"Accuracy on training set: ${(hit.toDouble / 251) * 100}%1.2f %%")
+
+
 //
 //    val normalizedInput: Network.Input = (a.transpose, input3).zipped.map((a, b) => (a, b._2))
 //
@@ -226,10 +262,10 @@ object Main {
 //    Random.shuffle((a.transpose, input).zipped.map((a, b) => (a, b._2)))
 //  }
 //
-//  def intercalate[V](a : List[V], b : List[V]): List[V] = a match {
-//    case first :: rest => first :: intercalate(b, rest)
-//    case _             => b
-//  }
+  def intercalate[V](a : List[V], b : List[V]): List[V] = a match {
+    case first :: rest => first :: intercalate(b, rest)
+    case _             => b
+  }
 //
 //  val network = new Network(8, 10, 1, 100, 1, 0.1)
 //  val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")

@@ -20,10 +20,49 @@ sealed trait MatrixLike[V] {
   def dot[That, Res](that: That)(implicit product: MatrixProduct[MatrixLike[V], That, Res]): Res =
     product(this, that)
 
+  def plus(other: MatrixLike[V])(implicit m: Monoid[V]): MatrixLike[V] = {
+    val it = Iterator.continually(other.values).flatten
+    val nw = values.map(v => m.plus(v, it.next()))
+    dup(nw)
+  }
+
+  def minus(other: MatrixLike[V])(implicit g: Group[V]): MatrixLike[V] = {
+    val it = Iterator.continually(other.values).flatten
+    val nw = values.map(v => g.minus(v, it.next()))
+    dup(nw)
+  }
+
+  def map(f: (V) => V): MatrixLike[V] = dup(values.map(f))
+  def mapWith(other: MatrixLike[V])(f: (V, V) => V): MatrixLike[V] = dup(elementWiseOp(other)(f))
+
+  def sumColumns(implicit m: Monoid[V]): MVector[V] = {
+    val res = IndexedSeq.newBuilder[V]
+
+    var j = 0
+    while(j < colSize) {
+      var i = 0
+      var tmp = m.zero
+
+      while(i < rowSize) {
+        tmp = m.plus(tmp, this(i, j))
+        i += 1
+      }
+
+      res += tmp
+      j += 1
+    }
+
+    MVector(res.result())
+  }
+
   protected def elementWiseOp(other: MatrixLike[V])(fn: (V, V) => V): IndexedSeq[V] = {
     assert(rowSize == other.rowSize && colSize == other.colSize)
     (values, other.values).zipped.map(fn)
   }
+
+  def toMVector: MVector[V]
+
+  def dimensionsString: String = s"${rowSize}x${colSize}"
 }
 
 object MatrixLike {
@@ -55,8 +94,17 @@ case class Matrix[V](rowSize: Int, colSize: Int, values: IndexedSeq[V]) extends 
       i += 1
     }
 
-    copy(values = res.result())
+    Matrix(colSize, rowSize, res.result())
   }
+
+  def toMVector: MVector[V] = {
+    assert(colSize == 1)
+    MVector(values)
+  }
+}
+
+object MVector {
+  def fill[V](n: Int)(f: => V): MVector[V] = MVector(IndexedSeq.fill(n)(f))
 }
 
 case class MVector[V](values: IndexedSeq[V]) extends MatrixLike[V] {
@@ -67,4 +115,6 @@ case class MVector[V](values: IndexedSeq[V]) extends MatrixLike[V] {
 
   def dup(vs: IndexedSeq[V]): MVector[V] = copy(values = vs)
   def transpose: MatrixLike[V] = new Matrix(1, rowSize, values)
+
+  def toMVector: MVector[V] = this
 }

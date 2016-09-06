@@ -1,41 +1,28 @@
 package neuralnetwork
 
-import machinelearning.{ColVector, Matrix}
+import algebra.{MVector, MatrixLike}
 
 object Layer {
   final val epsilon = 0.001
 }
 
-class Layer(size: Int, inputsSize: Int) {
-  // List
-  lazy val neurons = IndexedSeq.fill(size)(new Neuron)
-
-  /**
-    * Matrix used to compute activation values from input values. The +1 in columns size
-    * is added for the bias input.
-    * It is initialized with random values between -epsilon and +epsilon.
-    */
-  var weightsMatrix: Matrix[Double] = Matrix.fill(size, inputsSize) {
+class Layer(val size: Int, val inputsSize: Int) {
+  var weightsMatrix: MatrixLike[Double] = MatrixLike.fill(size, inputsSize) {
     (Math.random() * (2 * Layer.epsilon) - Layer.epsilon) / Math.sqrt(inputsSize)
   }
 
-  var biasVector = new ColVector(IndexedSeq.fill(size)(1.0))
+  var biasVector = MVector.fill(size)(0.0)
 
-  var momentumMatrix: Matrix[Double] = Matrix.fill(size, inputsSize)(0.0)
-
-  /**
-    * Compute the values for the entire layer and store them in a var before returning them.
-    *
-    * @param inputs Values from the previous layer
-    * @return A ColVector which size is this layer's size + 1
-    */
-  def compute(inputs: ColVector[Double]): ColVector[Double] = {
-    val inputValues = inputs.values
-    val biasValues = biasVector.values
-
-    val values = neurons.zipWithIndex.map { case (n, i) =>
-      n.compute(inputValues, weightsMatrix.rowValues(i), biasValues(i))
-    }
-    new ColVector(values)
+  final def compute(inputs: MatrixLike[Double]): MatrixLike[Double] = {
+    weightsMatrix.dot(inputs).plus(biasVector).map(activationFunction)
   }
+
+  def backprop(x: MatrixLike[Double], sigma: MatrixLike[Double]): MatrixLike[Double] = {
+    val left  = weightsMatrix.transpose.dot(sigma)
+    val ones  = MatrixLike.fill(x.rowSize, sigma.colSize)(1.0)
+    val right = x * (ones - x)
+    left * right
+  }
+
+  private def activationFunction(z: Double): Double = 1.0 / (1.0 + Math.exp(-z))
 }
