@@ -1,6 +1,5 @@
 package neuralnetwork
 
-import machinelearning.{ColVector, Matrix, MatrixOperation}
 import org.scalatest.WordSpec
 
 class ComputeTest extends WordSpec {

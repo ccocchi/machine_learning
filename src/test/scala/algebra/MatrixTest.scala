@@ -21,6 +21,13 @@ class MatrixTest extends WordSpec {
       assertResult(2)(res.rowSize)
       assertResult(IndexedSeq(1, 0, 3, 2, -3, 7))(res.values)
     }
+
+    "be summed by its columns" in {
+      val res = m1.sumColumns
+      assertResult(3)(res.rowSize)
+      assertResult(1)(res.colSize)
+      assertResult(IndexedSeq(1, 5, 4))(res.values)
+    }
   }
 
   "A vector" can {

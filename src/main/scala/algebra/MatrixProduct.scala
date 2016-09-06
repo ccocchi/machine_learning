@@ -8,10 +8,10 @@ trait MatrixProduct[Left, Right, Res] {
 
 object MatrixProduct {
   implicit def matrixLikeProduct[V](implicit ring: Ring[V]):
-    MatrixProduct[MatrixLike[V], MatrixLike[V], Matrix[V]] =
+    MatrixProduct[MatrixLike[V], MatrixLike[V], MatrixLike[V]] =
   {
-    new MatrixProduct[MatrixLike[V], MatrixLike[V], Matrix[V]] {
-      override def apply(l: MatrixLike[V], r: MatrixLike[V]): Matrix[V] = {
+    new MatrixProduct[MatrixLike[V], MatrixLike[V], MatrixLike[V]] {
+      override def apply(l: MatrixLike[V], r: MatrixLike[V]): MatrixLike[V] = {
         val res = IndexedSeq.newBuilder[V]
         var i = 0
 

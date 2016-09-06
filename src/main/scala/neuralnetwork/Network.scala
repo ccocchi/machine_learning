@@ -1,6 +1,5 @@
 package neuralnetwork
 
-import machinelearning.{ColVector, Matrix => OldMatrix}
 import neuralnetwork.Network.Input
 import algebra.{MVector, MatrixLike, RichIndexedSeq}
 
@@ -15,7 +14,7 @@ class Network( layerConfiguration: List[Int],
                regularizationParameter: Double
              )
 {
-  private[this] lazy val layers = buildLayers()
+  lazy val layers = buildLayers()
 
   /**
     * Train the network with given input
@@ -54,7 +53,7 @@ class Network( layerConfiguration: List[Int],
     * @param y The output values
     * @return A matrix of deltas for each layer's weight matrix
     */
-  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): (Seq[OldMatrix[Double]], Seq[ColVector[Double]]) = {
+//  def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): (Seq[OldMatrix[Double]], Seq[ColVector[Double]]) = {
 //    val aValuesFull = activationValues(new ColVector(x)) // a1, a2, a3, a4
 //
 //    val aValues = aValuesFull.tail.reverse // a4, a3, a2
@@ -80,35 +79,50 @@ class Network( layerConfiguration: List[Int],
 //    }
 //
 //    (m, errors)
-    null
-  }
+//  }
 
   def train(x: MatrixLike[Double], y: MatrixLike[Double], n: Int): Unit = {
     val size = layers.size
 
     val values = layers.scanLeft(x)((i, l) => l.compute(i)) // x, a2, a3
+    // (y - values.last).dot(MatrixLike.fill(1, 1)(1.0) - values.last).dot(values.last)
     val initialSigma = values.last - y // s3
+
+    //println(initialSigma.values)
 
     val sigmas = (layers.tail.reverse, values.reverse.tail).zipped.scanLeft(initialSigma) { case(sigma, (l, value)) =>
       l.backprop(value, sigma)
     } // s3, s2
 
+    //println(s"sigmas: ${sigmas.map(_.values)}")
+
     val errors = sigmas.toSeq.reverse
-    val deltas = (values.take(size), errors).zipped.map((a, s) => s.dot(a.transpose))
+
+    //errors = errors.updated(0, Vector(-0.002406, 0.007916).reshape(2, 1))
+    //println(s"errors: ${errors.map(_.values)}")
+
+    val deltas = (values.take(size), errors).zipped.map{ (a, s) =>
+      //println(s" s: ${s.values}")
+      //println(s" a: ${a.transpose.values}")
+
+      s.dot(a.transpose)
+    }
+
+//    println(s"deltas: ${deltas.map(_.values)}")
 
     (layers, deltas, errors).zipped.foreach { (l, delta, e) =>
       l.weightsMatrix = l.weightsMatrix.mapWith(delta) { (w, d) =>
         (1 - (learningRate * regularizationParameter / n)) * w - (d * learningRate / x.colSize)
       }
 
-      l.biasVector = e.sumColumns
+      l.biasVector = (l.biasVector - e.sumColumns.dot(learningRate / x.colSize)).toMVector
     }
   }
 
   def compute(x: MatrixLike[Double]): MatrixLike[Double] = layers.foldLeft(x)((i, l) => l.compute(i))
 
   def cost(x: MatrixLike[Double], y: MatrixLike[Double]): Double = {
-    assert(x.colSize == y.colSize && x.rowSize == y.rowSize)
+    assert(x.colSize == y.colSize)
 
     val m = x.colSize
     val left = (compute(x).values, y.values).zipped.foldLeft(0.0) { case (res, (xx, yy)) =>

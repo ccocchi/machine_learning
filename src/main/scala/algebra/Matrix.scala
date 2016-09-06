@@ -38,18 +38,18 @@ sealed trait MatrixLike[V] {
   def sumColumns(implicit m: Monoid[V]): MVector[V] = {
     val res = IndexedSeq.newBuilder[V]
 
-    var j = 0
-    while(j < colSize) {
-      var i = 0
+    var i = 0
+    while(i < rowSize) {
+      var j = 0
       var tmp = m.zero
 
-      while(i < rowSize) {
+      while(j < colSize) {
         tmp = m.plus(tmp, this(i, j))
-        i += 1
+        j += 1
       }
 
       res += tmp
-      j += 1
+      i += 1
     }
 
     MVector(res.result())
@@ -62,7 +62,15 @@ sealed trait MatrixLike[V] {
 
   def toMVector: MVector[V]
 
-  def dimensionsString: String = s"${rowSize}x${colSize}"
+  def dimensionsString: String = s"${rowSize}x$colSize"
+
+  def groupByColumns(n: Int): Seq[MatrixLike[V]] = {
+    values.grouped(n * rowSize).map { vs => vs.reshape(rowSize, vs.size / rowSize) }.toSeq
+  }
+
+  def columnsValues: Seq[IndexedSeq[V]] = {
+    values.grouped(rowSize).toSeq
+  }
 }
 
 object MatrixLike {
