@@ -1,15 +1,90 @@
 package machinelearning
 
+import java.io.{DataInputStream, FileInputStream}
+import java.util.zip.GZIPInputStream
+
 import scala.language.implicitConversions
 import algebra.{MatrixLike, RichIndexedSeq}
 import neuralnetwork.Network
 import neuralnetwork.Network.Input
+import utils.{MNISTImageLoader, MNISTLabelLoader}
+
 
 import scala.io.Source
 import scala.util.Random
 
 object Main {
   def main (args: Array[String]): Unit = {
+
+//    val stream = new DataInputStream(new GZIPInputStream(new FileInputStream("data/train-images-idx3-ubyte.gz")))
+//    val l1 = new Array[Byte](28 * 28 * 60000 + 16)
+//    stream.readFully(l1)
+//
+//    val stream2 = new DataInputStream(new GZIPInputStream(new FileInputStream("data/train-labels-idx1-ubyte.gz")))
+//    val l2 = new Array[Byte](60000 + 8)
+//    stream2.readFully(l2)
+//
+//    val normalizedL1 = l1.drop(16).grouped(784 * 10).map(vs => vs.map(v => v / 255.0).toIndexedSeq).toSeq
+//    val normalizedL2 = l2.drop(8).flatMap { v =>
+//      val a = Array.fill(10)(0.0)
+//      a(v) = 1.0
+//      a
+//    }.toIndexedSeq.grouped(10 * 10).toSeq
+//
+//    val network = new Network(List(784, 30, 10), 3.0, 0.0)
+//
+//    println(s"training set size: ${normalizedL1.size}")
+//
+//    for(epoch <- 1 to 1) {
+//      (normalizedL1, normalizedL2).zipped.foreach { case (x, y) =>
+//        network.train(x.reshape(784, 10), y.reshape(10, 10), 60000)
+//      }
+//      println(s"Epoch $epoch done")
+//    }
+
+    val network = new Network(List(784, 30, 10), 3.0, 0.0)
+
+    val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz")
+    val l2 = new MNISTLabelLoader("data/train-labels-idx1-ubyte.gz")
+    for (epoch <- 1 to 2) {
+      for (i <- 1 to 6000) {
+        val x = l1.images.take(10).toIndexedSeq.flatten.map(v => v /255.0).reshape(784, 10)
+        val y = l2.labels.take(10).toIndexedSeq.flatten.reshape(10, 10)
+        network.train(x, y, 60000)
+      }
+      l1.rewind()
+      l2.rewind()
+      println(s"Epoch $epoch done")
+    }
+
+    var hit = 0
+    (l1.images, l2.rawLabels).zipped.foreach { case(x, y) =>
+      val res = network.compute(x.map(v => v /255.0).reshape(784, 1))
+      val i = res.values.zipWithIndex.maxBy(_._1)._2
+
+      if (i == y)
+        hit += 1
+    }
+    println(f"* training accuracy: ${(hit.toDouble / 60000) * 100}%1.2f %%")
+
+    val l1Test = new MNISTImageLoader("data/t10k-images-idx3-ubyte.gz")
+    val l2Test = new MNISTLabelLoader("data/t10k-labels-idx1-ubyte.gz")
+
+    hit = 0
+    (l1Test.images, l2Test.rawLabels).zipped.foreach { case(x, y) =>
+      val res = network.compute(x.map(v => v /255.0).reshape(784, 1))
+      val i = res.values.zipWithIndex.maxBy(_._1)._2
+
+      if (i == y)
+        hit += 1
+    }
+    println(f"* test accuracy: ${(hit.toDouble / 10000) * 100}%1.2f %%")
+
+
+//
+//    loader.images.take(2).toIndexedSeq.flatten.reshape(784, 2)
+
+
 //    val network = new Network(List(1, 3, 1), 0.1, 0.0)
 //    network.layers.head.weightsMatrix = IndexedSeq(1.0, 1.0, 1.0).reshape(3, 1)
 //    network.layers.last.weightsMatrix = IndexedSeq(1.0, 1.0, 1.0).reshape(1, 3)
@@ -263,101 +338,99 @@ object Main {
 //
 //    println(s"Accuracy on testing set: ${(hit.toDouble / input2.size.toDouble) * 100}%")
 
-
-
-    val labels = IndexedSeq("MIT", "NUC", "CYT", "ME1", "ME2", "ME3", "EXC", "VAC", "POX", "ERL")
-
-    def sourceToInput(s: Source) = {
-      s.getLines().map { s =>
-        val array   = s.split(',')
-        val inputs  = array.take(8).toIndexedSeq.map(_.toDouble)
-        val label   = array.last
-        val result  = IndexedSeq.fill(10)(0.0)
-        (inputs, result.updated(labels.indexOf(label.trim), 1.0))
-      }.toIndexedSeq
-    }
-
-    def normalize(input: Input) = {
-      var a = input.map(c => c._1).transpose
-      for(i <- a.indices) {
-        val seq = a(i)
-        val mean = seq.sum / seq.size.toDouble
-        val newSeq = seq.map(v => v - mean)
-        val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
-        a = a.updated(i, newSeq.map(v => v / std))
-      }
-
-      Random.shuffle((a.transpose, input).zipped.map((a, b) => (a, b._2)))
-    }
-
-    def seqToMat(seq: IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]): (MatrixLike[Double], MatrixLike[Double]) = {
-      val res1 = IndexedSeq.newBuilder[Double]
-      val res2 = IndexedSeq.newBuilder[Double]
-
-      for(j <- 0 to 7)
-        for(i <- seq.indices) {
-          res1 += seq(i)._1(j)
-        }
-
-      for(j <- 0 to 9)
-        for(i <- seq.indices) {
-          res2 += seq(i)._2(j)
-        }
-
-      (res1.result().reshape(seq.size, 8), res2.result().reshape(seq.size, 10))
-    }
-
-    def batch(ms: (MatrixLike[Double], MatrixLike[Double]), batchSize: Int): Seq[(MatrixLike[Double], MatrixLike[Double])] = {
-      (ms._1.groupByColumns(batchSize), ms._2.groupByColumns(batchSize)).zipped.toList
-    }
-
-    val network = new Network(List(8, 10, 10), 1.0, 0.0)
-    val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")
-    val input   = normalize(sourceToInput(ysource))
-
-
-    val data = seqToMat(input.drop(400))
-    val trainingData = (data._1.transpose, data._2.transpose)
+//    val labels = IndexedSeq("MIT", "NUC", "CYT", "ME1", "ME2", "ME3", "EXC", "VAC", "POX", "ERL")
+//
+//    def sourceToInput(s: Source) = {
+//      s.getLines().map { s =>
+//        val array   = s.split(',')
+//        val inputs  = array.take(8).toIndexedSeq.map(_.toDouble)
+//        val label   = array.last
+//        val result  = IndexedSeq.fill(10)(0.0)
+//        (inputs, result.updated(labels.indexOf(label.trim), 1.0))
+//      }.toIndexedSeq
+//    }
+//
+//    def normalize(input: Input) = {
+//      var a = input.map(c => c._1).transpose
+//      for(i <- a.indices) {
+//        val seq = a(i)
+//        val mean = seq.sum / seq.size.toDouble
+//        val newSeq = seq.map(v => v - mean)
+//        val std = newSeq.map(v => v * v).sum / newSeq.size.toDouble
+//        a = a.updated(i, newSeq.map(v => v / std))
+//      }
+//
+//      Random.shuffle((a.transpose, input).zipped.map((a, b) => (a, b._2)))
+//    }
+//
+//    def seqToMat(seq: Seq[(IndexedSeq[Double], IndexedSeq[Double])]): (MatrixLike[Double], MatrixLike[Double]) = {
+//      val res1 = IndexedSeq.newBuilder[Double]
+//      val res2 = IndexedSeq.newBuilder[Double]
+//
+//      for(j <- 0 to 7)
+//        for(i <- seq.indices) {
+//          res1 += seq(i)._1(j)
+//        }
+//
+//      for(j <- 0 to 9)
+//        for(i <- seq.indices) {
+//          res2 += seq(i)._2(j)
+//        }
+//
+//      (res1.result().reshape(seq.size, 8), res2.result().reshape(seq.size, 10))
+//    }
+//
+//    def batch(ms: (MatrixLike[Double], MatrixLike[Double]), batchSize: Int): Seq[(MatrixLike[Double], MatrixLike[Double])] = {
+//      (ms._1.groupByColumns(batchSize), ms._2.groupByColumns(batchSize)).zipped.toList
+//    }
+//
+//    val network = new Network(List(8, 100, 10), 1.0, 0.0)
+//    val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")
+//    val input   = normalize(sourceToInput(ysource))
+//
+//
+//    val data = seqToMat(input.drop(400))
+//    val trainingData = (data._1.transpose, data._2.transpose)
 //    val totalInputs = trainingData._1.colSize
 //    val batches = batch(trainingData, 100)
-
-    val totalInputs = input.size - 400
-    val batches = input.drop(400).grouped(100).toSeq
-
-    network.compute(input.head._1.reshape(8, 1))
-
-    println("Starting training:")
-    println(s"* dataset size: $totalInputs")
-    println(s"* initial cost: ${network.cost(trainingData._1, trainingData._2)}")
-
-    for (i <- 1 to 1) {
-      if (i % 100 == 0)
-        println(s"* cost at epoch $i: ${network.cost(trainingData._1, trainingData._2)}")
-      if (i == 450)
-        network.learningRate = 0.1
-      // batches.foreach(b => network.train(b._1, b._2, totalInputs))
-      //batches.foreach(b => network.train(b, totalInputs))
-      network.train(IndexedSeq(input.head), 1)
-    }
-
-    println(s"* final cost: ${network.cost(trainingData._1, trainingData._2)}")
-
-    var hit = 0
-    input.drop(400).foreach { case (i, expected) =>
-      val res = network.compute(i.reshape(8, 1))
-      if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
-        hit += 1
-    }
-
-    println(f"* training accuracy: ${(hit.toDouble / totalInputs) * 100}%1.2f %%")
-
-    hit = 0
-    input.take(400).foreach { case (i, expected) =>
-      val res = network.compute(i.reshape(8, 1))
-      if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
-        hit += 1
-    }
-
-    println(f"* validation accuracy: ${(hit.toDouble / 400) * 100}%1.2f %%")
+//
+////    val totalInputs = input.size - 400
+////    val batches = input.drop(400).grouped(100).toSeq
+//
+//    network.compute(input.head._1.reshape(8, 1))
+//
+//    println("Starting training:")
+//    println(s"* dataset size: $totalInputs")
+//    println(s"* initial cost: ${network.cost(trainingData._1, trainingData._2)}")
+//
+//    for (i <- 1 to 900) {
+//      if (i % 100 == 0)
+//        println(s"* cost at epoch $i: ${network.cost(trainingData._1, trainingData._2)}")
+//      if (i == 450)
+//        network.learningRate = 0.1
+//      batches.foreach(b => network.train(b._1, b._2, totalInputs))
+//      //batches.foreach(b => network.train(b, totalInputs))
+//      //network.train(IndexedSeq(input.head), 1)
+//    }
+//
+//    println(s"* final cost: ${network.cost(trainingData._1, trainingData._2)}")
+//
+//    var hit = 0
+//    input.drop(400).foreach { case (i, expected) =>
+//      val res = network.compute(i.reshape(8, 1))
+//      if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
+//        hit += 1
+//    }
+//
+//    println(f"* training accuracy: ${(hit.toDouble / totalInputs) * 100}%1.2f %%")
+//
+//    hit = 0
+//    input.take(400).foreach { case (i, expected) =>
+//      val res = network.compute(i.reshape(8, 1))
+//      if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
+//        hit += 1
+//    }
+//
+//    println(f"* validation accuracy: ${(hit.toDouble / 400) * 100}%1.2f %%")
   }
 }
