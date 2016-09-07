@@ -32,12 +32,21 @@ class Network( layerConfiguration: List[Int],
       gradientBias = (gradientBias, sigmas).zipped.map(_ + _)
     }
 
+    println()
+    deltas.foreach { d =>
+      println(d.values.count(v => v == 0))
+    }
+
     val m = input.size
     val updatedWeights = (deltas, layers.map(_.weightsMatrix)).zipped.map { (dmat, wmat) =>
       dmat.mapWith(wmat) { (d, w) =>
         (1 - regularizationParameter * (learningRate / datasetSize)) * w - (learningRate / m) * d
       }
     }
+
+//    (layers, updatedWeights).zipped.foreach { case (l, w) =>
+//      println((l.weightsMatrix.values, w.values).zipped.count { case (x, y) => x != y })
+//    }
 
     (layers, updatedWeights, gradientBias).zipped.foreach { (l, mat, b) =>
        l.weightsMatrix = mat
@@ -54,7 +63,8 @@ class Network( layerConfiguration: List[Int],
     */
   def train(x: IndexedSeq[Double], y: IndexedSeq[Double]): (Seq[MatrixLike[Double]], Seq[MatrixLike[Double]]) = {
     val xMat = x.reshape(x.size, 1)
-    val aValuesFull = layers.scanLeft(xMat)((i, l) => l.compute(i)) // a1, a2, a3, a4
+    val tmp = layers.head.compute(xMat) // Avoid dropout on input values
+    val aValuesFull = xMat +: layers.tail.scanLeft(tmp)((i, l) => l.computeWithDropout(i)) // a1, a2, a3, a4
 
     val aValues = aValuesFull.tail.reverse // a4, a3, a2
     val thetas  = layers.map(_.weightsMatrix).reverse // theta3, theta2, theta1

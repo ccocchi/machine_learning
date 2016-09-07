@@ -16,6 +16,7 @@ sealed trait MatrixLike[V] {
   def +(other: MatrixLike[V])(implicit m: Monoid[V]): MatrixLike[V] = dup(elementWiseOp(other)(m.plus))
   def -(other: MatrixLike[V])(implicit g: Group[V]): MatrixLike[V]  = dup(elementWiseOp(other)(g.minus))
   def *(other: MatrixLike[V])(implicit r: Ring[V]): MatrixLike[V]   = dup(elementWiseOp(other)(r.times))
+  def *(scalar: V)(implicit r: Ring[V]): MatrixLike[V] = map(v => r.times(v, scalar))
 
   def dot[That, Res](that: That)(implicit product: MatrixProduct[MatrixLike[V], That, Res]): Res =
     product(this, that)
@@ -56,7 +57,7 @@ sealed trait MatrixLike[V] {
   }
 
   protected def elementWiseOp(other: MatrixLike[V])(fn: (V, V) => V): IndexedSeq[V] = {
-    assert(rowSize == other.rowSize && colSize == other.colSize)
+    assert(rowSize == other.rowSize && colSize == other.colSize, s"$dimensionsString != ${other.dimensionsString}")
     (values, other.values).zipped.map(fn)
   }
 

@@ -6,6 +6,7 @@ import neuralnetwork.Network
 import neuralnetwork.Network.Input
 
 import scala.io.Source
+import scala.util.Random
 
 object Main {
   def main (args: Array[String]): Unit = {
@@ -286,7 +287,7 @@ object Main {
         a = a.updated(i, newSeq.map(v => v / std))
       }
 
-      (a.transpose, input).zipped.map((a, b) => (a, b._2))
+      Random.shuffle((a.transpose, input).zipped.map((a, b) => (a, b._2)))
     }
 
     def seqToMat(seq: IndexedSeq[(IndexedSeq[Double], IndexedSeq[Double])]): (MatrixLike[Double], MatrixLike[Double]) = {
@@ -310,48 +311,39 @@ object Main {
       (ms._1.groupByColumns(batchSize), ms._2.groupByColumns(batchSize)).zipped.toList
     }
 
-    val network = new Network(List(8, 100, 10), 1, 0.0)
+    val network = new Network(List(8, 10, 10), 1.0, 0.0)
     val ysource = Source.fromFile("/Users/ccocchi/code/machine_learning/data/yeast.dat")
     val input   = normalize(sourceToInput(ysource))
 
-    //val validationData  = seqToMat(input.take(400))
-    val data = seqToMat(input)
+
+    val data = seqToMat(input.drop(400))
     val trainingData = (data._1.transpose, data._2.transpose)
+//    val totalInputs = trainingData._1.colSize
+//    val batches = batch(trainingData, 100)
 
-//
-//    val vs = {
-//      val mat = data._1
-//      val res = IndexedSeq.newBuilder[Double]
-//      for(i <- 0 to 7) {
-//        res += mat(0, i)
-//      }
-//      res.result()
-//    }
-//    println(vs)
-//
-//    System.exit(1)
+    val totalInputs = input.size - 400
+    val batches = input.drop(400).grouped(100).toSeq
 
-    val totalInputs = trainingData._1.colSize
-    val batches = batch(trainingData, 100)
+    network.compute(input.head._1.reshape(8, 1))
 
     println("Starting training:")
     println(s"* dataset size: $totalInputs")
     println(s"* initial cost: ${network.cost(trainingData._1, trainingData._2)}")
 
-    for (i <- 1 to 900) {
+    for (i <- 1 to 1) {
       if (i % 100 == 0)
         println(s"* cost at epoch $i: ${network.cost(trainingData._1, trainingData._2)}")
       if (i == 450)
         network.learningRate = 0.1
-      if (i == 800)
-        network.learningRate = 0.01
-      batches.foreach(b => network.train(b._1, b._2, totalInputs))
+      // batches.foreach(b => network.train(b._1, b._2, totalInputs))
+      //batches.foreach(b => network.train(b, totalInputs))
+      network.train(IndexedSeq(input.head), 1)
     }
 
     println(s"* final cost: ${network.cost(trainingData._1, trainingData._2)}")
 
     var hit = 0
-    input.foreach { case (i, expected) =>
+    input.drop(400).foreach { case (i, expected) =>
       val res = network.compute(i.reshape(8, 1))
       if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
         hit += 1
@@ -359,15 +351,13 @@ object Main {
 
     println(f"* training accuracy: ${(hit.toDouble / totalInputs) * 100}%1.2f %%")
 
-//    var hit = 0
-//    batches.foreach { case (inputs, result) =>
-//      val r = network.compute(inputs)
-//      (r.columnsValues, result.columnsValues).zipped.foreach { case(got, expected) =>
-//        if (got.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
-//          hit += 1
-//      }
-//    }
-//
-//    println(f"* training accuracy: ${(hit.toDouble / totalInputs) * 100}%1.2f %%")
+    hit = 0
+    input.take(400).foreach { case (i, expected) =>
+      val res = network.compute(i.reshape(8, 1))
+      if (res.values.zipWithIndex.maxBy(_._1)._2 == expected.zipWithIndex.maxBy(_._1)._2)
+        hit += 1
+    }
+
+    println(f"* validation accuracy: ${(hit.toDouble / 400) * 100}%1.2f %%")
   }
 }
