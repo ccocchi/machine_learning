@@ -21,7 +21,16 @@ sealed trait MatrixLike[V] {
   def dot[That, Res](that: That)(implicit product: MatrixProduct[MatrixLike[V], That, Res]): Res =
     product(this, that)
 
+  /**
+    * Add a vector like matrix to each column of the matrix.
+    *
+    * @param other
+    * @param m
+    * @return
+    */
   def plus(other: MatrixLike[V])(implicit m: Monoid[V]): MatrixLike[V] = {
+    assert(rowSize == other.rowSize && other.colSize == 1)
+
     val it = Iterator.continually(other.values).flatten
     val nw = values.map(v => m.plus(v, it.next()))
     dup(nw)

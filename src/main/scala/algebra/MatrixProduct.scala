@@ -12,6 +12,8 @@ object MatrixProduct {
   {
     new MatrixProduct[MatrixLike[V], MatrixLike[V], MatrixLike[V]] {
       override def apply(l: MatrixLike[V], r: MatrixLike[V]): MatrixLike[V] = {
+        assert(l.colSize == r.rowSize)
+
         val res = IndexedSeq.newBuilder[V]
         var i = 0
 
