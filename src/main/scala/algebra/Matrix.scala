@@ -7,11 +7,17 @@ sealed trait MatrixLike[V] {
   val colSize: Int
 
   def values: IndexedSeq[V]
-  def apply(row: Int, col: Int): V = values(col * rowSize + row)
+  def apply(row: Int, col: Int): V = {
+    if (isTranspose)
+      values(row * colSize + col)
+    else
+      values(col * rowSize + row)
+  }
 
   def dup(vs: IndexedSeq[V]): MatrixLike[V]
 
   def transpose: MatrixLike[V]
+  def isTranspose: Boolean
 
   def +(other: MatrixLike[V])(implicit m: Monoid[V]): MatrixLike[V] = dup(elementWiseOp(other)(m.plus))
   def -(other: MatrixLike[V])(implicit g: Group[V]): MatrixLike[V]  = dup(elementWiseOp(other)(g.minus))
@@ -92,27 +98,13 @@ object MatrixLike {
   }
 }
 
-case class Matrix[V](rowSize: Int, colSize: Int, values: IndexedSeq[V]) extends MatrixLike[V] {
+case class Matrix[V](rowSize: Int, colSize: Int, values: IndexedSeq[V], isTranspose: Boolean = false) extends MatrixLike[V] {
   type T = Matrix[V]
 
   def dup(vs: IndexedSeq[V]): Matrix[V] = copy(values = vs)
 
   def transpose: MatrixLike[V] = {
-    val res = IndexedSeq.newBuilder[V]
-    var i = 0
-
-    while (i < rowSize) {
-      var j = 0
-
-      while (j < colSize) {
-        res += this(i, j)
-        j += 1
-      }
-
-      i += 1
-    }
-
-    Matrix(colSize, rowSize, res.result())
+    Matrix(colSize, rowSize, values, isTranspose = !isTranspose)
   }
 
   def toMVector: MVector[V] = {
@@ -130,6 +122,8 @@ case class MVector[V](values: IndexedSeq[V]) extends MatrixLike[V] {
 
   val rowSize = values.size
   val colSize = 1
+
+  override def isTranspose: Boolean = false
 
   def dup(vs: IndexedSeq[V]): MVector[V] = copy(values = vs)
   def transpose: MatrixLike[V] = new Matrix(1, rowSize, values)
