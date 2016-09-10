@@ -3,26 +3,27 @@ package machinelearning
 import java.io.{DataInputStream, FileInputStream}
 import java.util.zip.GZIPInputStream
 
-import scala.language.implicitConversions
-import algebra.{MatrixLike, RichIndexedSeq}
-import neuralnetwork.Network
-import neuralnetwork.Network.Input
-import utils.{MNISTImageLoader, MNISTLabelLoader}
-
-
-import scala.io.Source
-import scala.util.Random
+import examples.MNISTExample
+import utils.MNISTImageLoader
 
 object Main {
   def main (args: Array[String]): Unit = {
-
+    val e = new MNISTExample
+    e.run()
 //    val stream = new DataInputStream(new GZIPInputStream(new FileInputStream("data/train-images-idx3-ubyte.gz")))
 //    val l1 = new Array[Byte](28 * 28 * 60000 + 16)
 //    stream.readFully(l1)
-//
+
 //    val stream2 = new DataInputStream(new GZIPInputStream(new FileInputStream("data/train-labels-idx1-ubyte.gz")))
 //    val l2 = new Array[Byte](60000 + 8)
 //    stream2.readFully(l2)
+
+//    val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz")
+//
+//    l1.imagesAsVectors.foreach(v => v)
+//
+//    println(l1.images.size)
+
 //
 //    val normalizedL1 = l1.drop(16).grouped(784 * 10).map(vs => vs.map(v => v / 255.0).toIndexedSeq).toSeq
 //    val normalizedL2 = l2.drop(8).flatMap { v =>
@@ -42,43 +43,78 @@ object Main {
 //      println(s"Epoch $epoch done")
 //    }
 
-    val network = new Network(List(784, 30, 10), 3.0, 0.0)
 
-    val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz")
-    val l2 = new MNISTLabelLoader("data/train-labels-idx1-ubyte.gz")
-    for (epoch <- 1 to 2) {
-      for (i <- 1 to 6000) {
-        val x = l1.images.take(10).toIndexedSeq.flatten.map(v => v /255.0).reshape(784, 10)
-        val y = l2.labels.take(10).toIndexedSeq.flatten.reshape(10, 10)
-        network.train(x, y, 60000)
-      }
-      l1.rewind()
-      l2.rewind()
-      println(s"Epoch $epoch done")
-    }
 
-    var hit = 0
-    (l1.images, l2.rawLabels).zipped.foreach { case(x, y) =>
-      val res = network.compute(x.map(v => v /255.0).reshape(784, 1))
-      val i = res.values.zipWithIndex.maxBy(_._1)._2
+    // val network = new Network(List(784, 30, 10), 3.0, 0.0)
 
-      if (i == y)
-        hit += 1
-    }
-    println(f"* training accuracy: ${(hit.toDouble / 60000) * 100}%1.2f %%")
+//    val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz")
+//    // val l2 = new MNISTLabelLoader("data/train-labels-idx1-ubyte.gz")
+//
+//    val start2 = System.currentTimeMillis()
+//
+//    for (epoch <- 1 to 10) {
+//
+//      val it1 = l1.images
+//      // val it2 = l2.labelsq
+//
+//      for (i <- 1 to 6000) {
+//        val x = it1.next().reshape(784, 10)
+//
+//        if (i == epoch) {
+//          println(x.values.drop(120).take(100))
+//          println()
+//        }
+////         val y = it2.take(10).flatten.toIndexedSeq.reshape(10, 10)
+////         network.train(x, y, 60000)
+//      }
 
-    val l1Test = new MNISTImageLoader("data/t10k-images-idx3-ubyte.gz")
-    val l2Test = new MNISTLabelLoader("data/t10k-labels-idx1-ubyte.gz")
+//      l1.batches().foreach { b =>
+//        val x = b.reshape(784, 10)
+//
+//        i += 1
+//
+//        if (i == epoch) {
+//          println(x.values.drop(120).take(100))
+//          println()
+//        }
+//      }
+//
+//      l1.rewind()
+//      println(s"Epoch $epoch done")
+//    }
+//
+//    val end2 = System.currentTimeMillis()
+//    println(s"Time elaspsed for rewind: ${end2 - start2}")
 
-    hit = 0
-    (l1Test.images, l2Test.rawLabels).zipped.foreach { case(x, y) =>
-      val res = network.compute(x.map(v => v /255.0).reshape(784, 1))
-      val i = res.values.zipWithIndex.maxBy(_._1)._2
 
-      if (i == y)
-        hit += 1
-    }
-    println(f"* test accuracy: ${(hit.toDouble / 10000) * 100}%1.2f %%")
+
+
+
+
+//    l2.rewind()
+//
+//    var hit = 0
+//    (l1.head, l2.rawLabels).zipped.foreach { case(x, y) =>
+//      val res = network.compute(x.reshape(784, 1))
+//      val i = res.values.zipWithIndex.maxBy(_._1)._2
+//
+//      if (i == y)
+//        hit += 1
+//    }
+//    println(f"* training accuracy: ${(hit.toDouble / 60000) * 100}%1.2f %%")
+//
+//    val l1Test = new MNISTImageLoader("data/t10k-images-idx3-ubyte.gz")
+//    val l2Test = new MNISTLabelLoader("data/t10k-labels-idx1-ubyte.gz")
+//
+//    hit = 0
+//    (l1Test.head, l2Test.rawLabels).zipped.foreach { case(x, y) =>
+//      val res = network.compute(x.reshape(784, 1))
+//      val i = res.values.zipWithIndex.maxBy(_._1)._2
+//
+//      if (i == y)
+//        hit += 1
+//    }
+//    println(f"* test accuracy: ${(hit.toDouble / 10000) * 100}%1.2f %%")
 
 
 //

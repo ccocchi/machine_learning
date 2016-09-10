@@ -3,10 +3,8 @@ package utils
 import java.io.{DataInputStream, FileInputStream}
 import java.util.zip.GZIPInputStream
 
-import scala.annotation.tailrec
-
-class MNISTImageLoader(path: String) {
-  private[this] var stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
+class MNISTImageLoader(path: String, batchSize: Int) {
+  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
 
   assert(stream.readInt() == 2051, "Wrong MNIST image stream magic")
 
@@ -14,48 +12,89 @@ class MNISTImageLoader(path: String) {
   val width  = stream.readInt()
   val height = stream.readInt()
 
-  def images = imageStream(0)
+  val head = imageStream(0)
 
-  def rewind() = {
-    stream.close()
-    stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
-    stream.skipBytes(16)
-  }
+  def images = head.iterator
+
+  def imagesStream = imageStream(0)
 
   private def imageStream(i: Int): Stream[IndexedSeq[Double]] = {
     if (i >= count)
       Stream.empty
     else
-      Stream.cons(readImage, imageStream(i + 1))
+      Stream.cons(readBatch, imageStream(i + 1))
   }
 
-  private def readImage: IndexedSeq[Double] = {
-    val res = IndexedSeq.newBuilder[Double]
-
-    for (i <- 0 until width)
-      for (j <- 0 until height)
-        res += stream.read().toDouble
-
-
-    res.result()
+  private def readBatch: IndexedSeq[Double] = {
+    val b = new Array[Byte](width * height * batchSize)
+    stream.readFully(b)
+    b.map(v => (v & 0xFF) / 255.0).toIndexedSeq
   }
 }
 
-class MNISTLabelLoader(path: String) {
-  private[this] var stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
+class MNISTImageLoader2(path: String, batchSize: Int) {
+  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
+
+  assert(stream.readInt() == 2051, "Wrong MNIST image stream magic")
+
+  val count  = stream.readInt()
+  val width  = stream.readInt()
+  val height = stream.readInt()
+
+  def imagesStream = imageStream(0)
+
+  private def imageStream(i: Int): Stream[IndexedSeq[Double]] = {
+    if (i >= count)
+      Stream.empty
+    else
+      Stream.cons(readBatch, imageStream(i + 1))
+  }
+
+  private def readBatch: IndexedSeq[Double] = {
+    val b = new Array[Byte](width * height * batchSize)
+    stream.readFully(b)
+    b.map(v => v / 255.0).toIndexedSeq
+  }
+}
+
+class MNISTLabelLoader(path: String, batchSize: Int) {
+  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
 
   assert(stream.readInt() == 2049, "Wrong MNIST label stream magic")
 
   val count  = stream.readInt()
 
-  def labels = labelStream(0)
-  def rawLabels = rawLabelStream(0)
+  val head = labelStream(0)
 
-  def rewind() = {
-    stream.close()
-    stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
-    stream.skipBytes(8)
+  def labels = head.iterator
+
+  private def labelStream(i: Int): Stream[IndexedSeq[Double]] = {
+    if (i >= count)
+      Stream.empty
+    else
+      Stream.cons(readLabel, labelStream(i + 1))
   }
+
+  private def readLabel: IndexedSeq[Double] = {
+    val res = Array.fill(10 * batchSize)(0.0)
+    var i = 0
+    while (i < batchSize) {
+      res.update(stream.readUnsignedByte() + 10 * i, 1.0)
+      i += 1
+    }
+
+    res.toIndexedSeq
+  }
+}
+
+class MNISTLabelLoader2(path: String, batchSize: Int) {
+  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
+
+  assert(stream.readInt() == 2049, "Wrong MNIST label stream magic")
+
+  val count  = stream.readInt()
+
+  def rawLabels = rawLabelStream(0)
 
   private def rawLabelStream(i: Int): Stream[Int] = {
     if (i >= count)
@@ -72,66 +111,13 @@ class MNISTLabelLoader(path: String) {
   }
 
   private def readLabel: IndexedSeq[Double] = {
-    val res = Array.fill(10)(0.0)
+    val res = Array.fill(10 * batchSize)(0.0)
+    var i = 0
+    while (i < batchSize) {
+      res.update(stream.readUnsignedByte() + 10 * i, 1.0)
+      i +=1
+    }
 
-    res.update(stream.readUnsignedByte(), 1.0)
     res.toIndexedSeq
   }
 }
-
-
-
-//class MNISTLoader(imageFilename: String, labelFilename: String) {
-//  val iStream =
-//  val lStream = new DataInputStream(new GZIPInputStream(new FileInputStream(labelFilename.toString)))
-
-
-
-
-//  /**
-//    * Load images from MNIST data set into a matrix. Each example is a column if the
-//    * returned matrix.
-//    *
-//    * @return A matrix of dimension (feature number * dataset size)
-//    */
-//  def images: MatrixLike[Double] = {
-//
-//
-//    assert(stream.readInt() == 2051, "Wrong MNIST image stream magic")
-//
-
-//
-//    val res = IndexedSeq.newBuilder[Double]
-//
-//    for (n <- 0 until count)
-
-//        }
-//
-//    res.result().reshape(width * height, count)
-//  }
-
-//  /**
-//    * Load labels from MNIST data set into a matrix. Each vector contains a 1.0 in the jth
-//    * position and 0 elsewhere, j corresponding to the corresponding label (0..9)
-//    *
-//    * @return A matrix of dimension (10 * dataset size)
-//    */
-//  def labels: MatrixLike[Double] = {
-//
-//
-//    assert(stream.readInt() == 2049, "Wrong MNIST label stream magic")
-//
-//    val count = stream.readInt()
-//    val res   = IndexedSeq.newBuilder[Double]
-//
-//    for(n <- 0 until count) {
-//      val value = stream.readUnsignedByte()
-//      val vector = Array.fill(10)(0.0)
-//      vector.update(value, 1.0)
-//      res ++= vector
-//    }
-//
-//    res.result().reshape(10, count)
-//  }
-//}
-//
