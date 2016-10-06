@@ -27,6 +27,14 @@ sealed trait MatrixLike[V] {
   def dot[That, Res](that: That)(implicit product: MatrixProduct[MatrixLike[V], That, Res]): Res =
     product(this, that)
 
+
+  def multiplicationPerColumn(other: MVector[V])(implicit r: Ring[V]): MatrixLike[V] = {
+    val res = values.grouped(rowSize).flatMap { vs =>
+      (vs, other.values).zipped.map((x, y) => r.times(x, y))
+    }
+    dup(res.toIndexedSeq)
+  }
+
   /**
     * Add a vector like matrix to each column of the matrix.
     *
@@ -87,6 +95,8 @@ sealed trait MatrixLike[V] {
   def columnsValues: Seq[IndexedSeq[V]] = {
     values.grouped(rowSize).toSeq
   }
+
+
 }
 
 object MatrixLike {
@@ -130,3 +140,7 @@ case class MVector[V](values: IndexedSeq[V]) extends MatrixLike[V] {
 
   def toMVector: MVector[V] = this
 }
+
+//class MutableMatrix[V](val rowSize: Int, val colSize: Int, val values: Array[V]) extends MatrixLike[V] {
+//
+//}

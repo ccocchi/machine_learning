@@ -2,26 +2,25 @@ package examples
 
 import algebra.RichIndexedSeq
 import neuralnetwork.Network
-import utils.{MNISTImageLoader, MNISTImageLoader2, MNISTLabelLoader, MNISTLabelLoader2}
+import utils.{MNISTImageLoader, MNISTLabelLoader}
 
 class MNISTExample {
   private[this] val batchSize   = 10
   private[this] val batchCount  = 60000 / batchSize
 
-  private[this] val epochs = 2
-  private[this] val learningRate = 3.0
-  private[this] val lambda = 0.0
+  private[this] val epochs = 30
+  private[this] val learningRate = 0.1
+  private[this] val lambda = 5.0
 
   private[this] val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz", batchSize)
   private[this] val l2 = new MNISTLabelLoader("data/train-labels-idx1-ubyte.gz", batchSize)
 
-  private[this] val network = new Network(List(784, 30, 10), learningRate, lambda)
+  private[this] val network = new Network(List(784, 30, 10), learningRate, lambda, None)
 
   def run(): Unit = {
     train()
     trainingAccuracy()
     testAccuracy()
-
   }
 
   private def train(): Unit = {
@@ -65,7 +64,6 @@ class MNISTExample {
       }
     }
 
-    println(hit)
     println(f"* training accuracy: ${(hit.toDouble / l1.count) * 100}%1.2f %%")
   }
 
@@ -85,7 +83,6 @@ class MNISTExample {
         hit += 1
     }
 
-    println(hit)
     println(f"* test accuracy: ${(hit.toDouble / t1.count) * 100}%1.2f %%")
   }
 }

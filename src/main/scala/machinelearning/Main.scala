@@ -3,11 +3,18 @@ package machinelearning
 import java.io.{DataInputStream, FileInputStream}
 import java.util.zip.GZIPInputStream
 
+import algebra.{MatrixLike, MatrixOperation, RichIndexedSeq}
 import examples.MNISTExample
+import neuralnetwork.Network
 import utils.MNISTImageLoader
 
 object Main {
   def main (args: Array[String]): Unit = {
+//    val network = new Network(List(2, 5, 2), 0.1, 0.0, Some(0.7))
+//
+//    network.train(IndexedSeq(2.0, 4.0, 1.0, -3.0).reshape(2, 2), IndexedSeq(10.0, 7.0, 2.0, 1.5).reshape(2, 2), 2)
+
+
     val e = new MNISTExample
     e.run()
 //    val stream = new DataInputStream(new GZIPInputStream(new FileInputStream("data/train-images-idx3-ubyte.gz")))

@@ -32,31 +32,6 @@ class MNISTImageLoader(path: String, batchSize: Int) {
   }
 }
 
-class MNISTImageLoader2(path: String, batchSize: Int) {
-  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
-
-  assert(stream.readInt() == 2051, "Wrong MNIST image stream magic")
-
-  val count  = stream.readInt()
-  val width  = stream.readInt()
-  val height = stream.readInt()
-
-  def imagesStream = imageStream(0)
-
-  private def imageStream(i: Int): Stream[IndexedSeq[Double]] = {
-    if (i >= count)
-      Stream.empty
-    else
-      Stream.cons(readBatch, imageStream(i + 1))
-  }
-
-  private def readBatch: IndexedSeq[Double] = {
-    val b = new Array[Byte](width * height * batchSize)
-    stream.readFully(b)
-    b.map(v => v / 255.0).toIndexedSeq
-  }
-}
-
 class MNISTLabelLoader(path: String, batchSize: Int) {
   private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
 
@@ -81,41 +56,6 @@ class MNISTLabelLoader(path: String, batchSize: Int) {
     while (i < batchSize) {
       res.update(stream.readUnsignedByte() + 10 * i, 1.0)
       i += 1
-    }
-
-    res.toIndexedSeq
-  }
-}
-
-class MNISTLabelLoader2(path: String, batchSize: Int) {
-  private[this] val stream = new DataInputStream(new GZIPInputStream(new FileInputStream(path)))
-
-  assert(stream.readInt() == 2049, "Wrong MNIST label stream magic")
-
-  val count  = stream.readInt()
-
-  def rawLabels = rawLabelStream(0)
-
-  private def rawLabelStream(i: Int): Stream[Int] = {
-    if (i >= count)
-      Stream.empty
-    else
-      Stream.cons(stream.readUnsignedByte(), rawLabelStream(i + 1))
-  }
-
-  private def labelStream(i: Int): Stream[IndexedSeq[Double]] = {
-    if (i >= count)
-      Stream.empty
-    else
-      Stream.cons(readLabel, labelStream(i + 1))
-  }
-
-  private def readLabel: IndexedSeq[Double] = {
-    val res = Array.fill(10 * batchSize)(0.0)
-    var i = 0
-    while (i < batchSize) {
-      res.update(stream.readUnsignedByte() + 10 * i, 1.0)
-      i +=1
     }
 
     res.toIndexedSeq
