@@ -45,8 +45,8 @@ class Layer(size: Int, inputsSize: Int) {
   def sigma(x: MatrixLike[Double], previousSigma: MatrixLike[Double]): MatrixLike[Double] = {
     val left  = weightsMatrix.transpose.dot(previousSigma)
     val ones  = MatrixLike.fill(x.rowSize, previousSigma.colSize)(1.0)
-    val right = x * (ones - x)
-    left * right
+    val derivative = x * (ones - x)
+    left * derivative
   }
 
   def weightValues = weightsMatrix.values
