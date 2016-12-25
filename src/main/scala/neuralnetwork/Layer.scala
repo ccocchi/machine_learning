@@ -3,9 +3,9 @@ package neuralnetwork
 import algebra.{MVector, MatrixLike}
 import scala.util.Random
 
-class Layer(size: Int, inputsSize: Int) {
+class Layer(size: Int, inputsSize: Int, activationFunction: ActivationFunction = ReLUFunction) {
   protected var weightsMatrix: MatrixLike[Double] = MatrixLike.fill(size, inputsSize) {
-    Random.nextGaussian() / Math.sqrt(inputsSize)
+    Random.nextGaussian() * Math.sqrt(2.0 / inputsSize)
   }
 
   protected var biasVector: MatrixLike[Double]    = MVector.fill(size)(0.0)
@@ -17,7 +17,7 @@ class Layer(size: Int, inputsSize: Int) {
     * @return A vector representing values for each node of the layer
     */
   def compute(inputs: MatrixLike[Double]): MatrixLike[Double] = {
-    weightsMatrix.dot(inputs).plus(biasVector).map(activationFunction)
+    weightsMatrix.dot(inputs).plus(biasVector).map(activationFunction.f)
   }
 
   /**
@@ -28,7 +28,7 @@ class Layer(size: Int, inputsSize: Int) {
     * @param delta Matrix of delta for the weightsMatrix
     * @param e Vector og
     * @param f
-    * @param c
+    * @param c Learning rate scaled to the current batch
     */
   def update(delta: MatrixLike[Double], e: MatrixLike[Double], f: (Double, Double) => Double, c: Double) = {
     weightsMatrix = weightsMatrix.mapWith(delta)(f)
@@ -44,14 +44,10 @@ class Layer(size: Int, inputsSize: Int) {
     */
   def sigma(x: MatrixLike[Double], previousSigma: MatrixLike[Double]): MatrixLike[Double] = {
     val left  = weightsMatrix.transpose.dot(previousSigma)
-    val ones  = MatrixLike.fill(x.rowSize, previousSigma.colSize)(1.0)
-    val derivative = x * (ones - x)
-    left * derivative
+    left * activationFunction.derivative(x)
   }
 
   def weightValues = weightsMatrix.values
-
-  private def activationFunction(z: Double): Double = 1.0 / (1.0 + Math.exp(-z))
 }
 
 class DropoutLayer(size: Int, inputsSize: Int, p: Double) extends Layer(size, inputsSize) {

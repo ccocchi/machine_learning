@@ -16,10 +16,16 @@ class Network(layerConfiguration: List[Int],
     * @param w Old weight value
     * @param d Delta calculated
     * @param n Size of the training set
-    * @param r Learning rate scaled for the current batch
+    * @param r Learning rate scaled to the current batch
     */
   private def gradientDescentF(w: Double, d: Double, n: Int, r: Double) = (1 - (learningRate * regularizationParameter / n)) * w - (d * r)
 
+  /**
+    * Train the network with given input and expected values.
+    * @param x Batch of input values
+    * @param y Associated expected values
+    * @param n Size of the training set
+    */
   def train(x: MatrixLike[Double], y: MatrixLike[Double], n: Int): Unit = {
     val values = layers.scanLeft(x)((i, l) => l.compute(i)) // x, a2, a3
 
@@ -38,6 +44,12 @@ class Network(layerConfiguration: List[Int],
     (layers, deltas, errors).zipped.foreach((l, delta, e) => l.update(delta, e, f, batchLearningRate))
   }
 
+  /**
+    * Compute the final values from the network given input values.
+    * @param x Input values, as a vector for single example compute or a matrix if multiple examples are computed
+    *          at the same time
+    * @return A matrix containing the output of the final layer
+    */
   def compute(x: MatrixLike[Double]): MatrixLike[Double] = layers.foldLeft(x)((i, l) => l.compute(i))
 
   def cost(x: MatrixLike[Double], y: MatrixLike[Double]): Double = {
@@ -61,7 +73,7 @@ class Network(layerConfiguration: List[Int],
       case head :: Nil  => new Layer(head, inputSize) :: acc // output
       case head :: tail => // hidden
         dropout match {
-              case Some(p) => inner(tail, new DropoutLayer(head, inputSize, p) :: acc, head)
+          case Some(p) => inner(tail, new DropoutLayer(head, inputSize, p) :: acc, head)
           case None    => inner(tail, new Layer(head, inputSize) :: acc, head)
         }
       case Nil => acc
