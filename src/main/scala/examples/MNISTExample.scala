@@ -8,19 +8,31 @@ class MNISTExample {
   private[this] val batchSize   = 10
   private[this] val batchCount  = 60000 / batchSize
 
-  private[this] val epochs = 30
-  private[this] val learningRate = 0.1
-  private[this] val lambda = 5.0
+  private[this] val epochs = 5
+  private[this] val learningRate = 0.01
+  private[this] val lambda = 0.0
+  private[this] val dropout: Option[Double] = None
 
   private[this] val l1 = new MNISTImageLoader("data/train-images-idx3-ubyte.gz", batchSize)
   private[this] val l2 = new MNISTLabelLoader("data/train-labels-idx1-ubyte.gz", batchSize)
 
-  private[this] val network = new Network(List(784, 30, 10), learningRate, lambda, None)
+  private[this] val network = new Network(List(784, 30, 10), learningRate, lambda, dropout)
 
   def run(): Unit = {
+    printParameters()
     train()
     trainingAccuracy()
     testAccuracy()
+  }
+
+  private def printParameters(): Unit = {
+    println(s"Running with following parameters:")
+    println(s"  Epochs: $epochs")
+    println(s"  Batch size: $batchSize")
+    println(s"  Learning Rate: $learningRate")
+    println(s"  L2 regularization: $lambda")
+    println(s"  Dropout: ${if (dropout.isDefined) "Yes" else "No" }")
+    println()
   }
 
   private def train(): Unit = {
@@ -39,13 +51,15 @@ class MNISTExample {
         val y = tmp2.reshape(10, batchSize)
 
         network.train(x, y, 60000)
-
         i += 1
       }
 
       e += 1
-      println(s"Epoch $e done")
+      print('.')
     }
+
+    println()
+    println()
   }
 
   private def trainingAccuracy(): Unit = {
